@@ -2,6 +2,7 @@ from nose import SkipTest
 from nose.tools import assert_equal
 from graphserver.xmlrpc import RTplot
 from graphserver import xmlrpc
+from numpy import random
 
 class TestRTplot:
     def test___init__(self):
@@ -20,19 +21,22 @@ class TestRTplot:
         raise SkipTest # TODO: implement your test here
 
     def test_histogram(self):
-        # r_tplot = RTplot(persist, debug)
-        # assert_equal(expected, r_tplot.histogram(data, title, names))
-        raise SkipTest # TODO: implement your test here
-
+        data = random.normal(0,1,1000).tolist()
+        r_tplot = RTplot(persist=0, debug=0)
+        r_tplot.histogram(data, ['test'], 'test title')
+        
     def test_lines(self):
-        # r_tplot = RTplot(persist, debug)
-        # assert_equal(expected, r_tplot.lines(data, x, names, title, style))
-        raise SkipTest # TODO: implement your test here
+        data = random.normal(0,1,1000).tolist()
+        r_tplot = RTplot(persist=0, debug=0)
+        r_tplot.lines(data,None, ['test'], 'test title')
+        
 
     def test_scatter(self):
-        # r_tplot = RTplot(persist, debug)
-        # assert_equal(expected, r_tplot.scatter(x, y, names, title, style, jitter))
-        raise SkipTest # TODO: implement your test here
+        data = random.normal(0,1,1000).tolist()
+        data2 = random.normal(0,2,1000).tolist()
+        r_tplot = RTplot(persist=0, debug=0)
+        r_tplot.scatter(data,data2, ['d1','d2'], 'test scatter')
+        
 
 class TestStartServer:
     def test_start_server(self):

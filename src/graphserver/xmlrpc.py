@@ -36,7 +36,7 @@ class RTplot:
             -`y`: list of numbers or list of lists
         """
         if jitter:
-            jt = numpy.random.normalvariate(1, 1e-4)
+            jt = numpy.random.normal(1, 1e-4,1)[0]
         else:
             jt = 1
         x = numpy.array(x)
@@ -45,8 +45,12 @@ class RTplot:
         if x.shape != y.shape:
             raise ValueError("x, %s and y, %s arrays must have the same shape."%(x.shape,y.shape))
         if labels:
-            if len(labels) != x.shape[0]:
-                raise ValueError("labels list must have exactly %s items, but has %s."%(x.shape[0],len(labels)))
+            if len(x.shape)==1:
+                if len(labels) !=2:
+                    raise ValueError("Labels list should coinatin exactly 2 elements, but has %s"%len(labels))
+            else:
+                if len(labels) != x.shape[0]:
+                    raise ValueError("labels list must have exactly %s items, but has %s."%(x.shape[0],len(labels)))
 
 
         self.gp('set title "%s"'%title)
