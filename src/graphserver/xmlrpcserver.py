@@ -4,16 +4,20 @@ __docformat__ = "restructuredtext en"
 import Gnuplot
 import numpy
 from SimpleXMLRPCServer import SimpleXMLRPCServer
+from twisted.web import xmlrpc, server
+from twisted.internet import reactor
 from multiprocessing import Process
 
 
 __ports_used = []
 
-class RTplot:
+class RTplot(xmlrpc.XMLRPC):
     '''
     Real time plotting class based on Gnuplot
     '''
-    def __init__(self, persist=0,debug=0):
+    allowNone = True
+    def __init__(self, persist=0,debug=0,**kwargs):
+        xmlrpc.XMLRPC.__init__(self)
         self.gp = Gnuplot.Gnuplot(persist = persist, debug=debug)
         self.plots = []
 
@@ -47,7 +51,7 @@ class RTplot:
         if labels:
             if len(x.shape)==1:
                 if len(labels) !=2:
-                    raise ValueError("Labels list should coinatin exactly 2 elements, but has %s"%len(labels))
+                    raise ValueError("Labels list should contain exactly 2 elements, but has %s"%len(labels))
             else:
                 if len(labels) != x.shape[0]:
                     raise ValueError("labels list must have exactly %s items, but has %s."%(x.shape[0],len(labels)))
@@ -69,7 +73,7 @@ class RTplot:
             self.plots.append(Gnuplot.PlotItems.Data(x*jt,y*jt,title=labels[0],with_=style))
             self.gp.plot(*tuple(self.plots))
         
-    def lines(self, data, x=None, labels=[],title='',style='lines'):
+    def lines(self, data, x=[], labels=[],title='',style='lines', multiplot=0):
         '''
         Create a single/multiple line plot from a numpy array or record array.
         
@@ -78,44 +82,69 @@ class RTplot:
             - `x`: x values for the series: list
             - `labels`: is a list of strings to serve as legend labels
             - `style`: plot styles from gnuplot: lines, boxes, points, linespoints, etc.
+            - `multiplot`: Whether to make multiple subplots
         '''
 
-        self.gp('set title "%s"'%title)
+        if multiplot:
+            sq = numpy.sqrt(len(data))
+            r= numpy.floor(sq);c=numpy.ceil(sq)
+            if len(data) == 3:
+                r=3;c=1
+            self.gp('set multiplot layout %s,%s title "%s"'%(r, c, title))
+        else:
+            self.gp('set title "%s"'%title)
+            
         assert isinstance (data, list)
         data = numpy.array(data)
         
         if len(data.shape) > 1 and len(data.shape) <= 2:
             i = 0
             for row in data:
-                if  x== None:
+                if  x== []:
                     x = numpy.arange(len(row))
                 if labels:
                     self.plots.append(Gnuplot.PlotItems.Data(x, row,title=labels[i],with_=style))
                 else:
                     self.plots.append(Gnuplot.PlotItems.Data(x, row,with_=style))
                 i += 1
-            self.gp.plot(*tuple(self.plots))
+            if not multiplot:
+                self.gp.plot(*tuple(self.plots))
+            else:
+                [self.gp.plot(pl) for pl in self.plots]
         elif len(data.shape) >2:
                 pass
         else:
 #            print data
-            if x==None:
+            if x==[]:
                 x = numpy.arange(len(data))
             self.plots.append(Gnuplot.PlotItems.Data(x,data,title=labels[0],with_=style))
-            self.gp.plot(*tuple(self.plots))
+            if not multiplot:
+                self.gp.plot(*tuple(self.plots))
+            else:
+                [self.gp.plot(pl) for pl in self.plots]
 
 
+        
 
-    def histogram(self,data,labels=[],title='',):
+    def xmlrpc_histogram(self,data,labels=[],title='',multiplot=0):
         '''
         Create a single/multiple Histogram plot from a numpy array or record array.
         
         :Parameters:
             - `data`: must be a list of lists.
             - `labels`: is a list of strings to serve as legend labels
+            - `multiplot`: Whether to make multiple subplots
         '''
+        if multiplot:
+            sq = numpy.sqrt(len(data))
+            r= numpy.floor(sq);c=numpy.ceil(sq)
+            if len(data) == 3:
+                r=3;c=1
+            self.gp('set multiplot layout %s,%s title "%s"'%(r, c, title))
+        else:
+            self.gp('set title "%s"'%title)
         self.gp('set style data boxes')
-        self.gp('set title "%s"'%title)
+        
         assert isinstance (data, list)
         data = numpy.array(data)
         if not labels:
@@ -125,40 +154,53 @@ class RTplot:
                 m,bins = numpy.histogram(row,normed=True,bins=50)
                 d = zip(bins[:-1],m)
                 self.plots.append(Gnuplot.PlotItems.Data(d,title=labels[n]))
-            self.gp.plot(*tuple(self.plots))
+            if not multiplot:
+                self.gp.plot(*tuple(self.plots))
+            else:
+                [self.gp.plot(pl) for pl in self.plots]
         elif len(data.shape) >2:
             pass
         else:
             m,bins = numpy.histogram(data,normed=True,bins=50)
             d = zip(bins[:-1],m)
             self.plots.append(Gnuplot.PlotItems.Data(d,title=labels[0]))
-            self.gp.plot(*tuple(self.plots))
+            if not multiplot:
+                self.gp.plot(*tuple(self.plots))
+            else:
+                [self.gp.plot(pl) for pl in self.plots]
 
-
+        return 0
 
 
         
-def _start_server(server):
+def _start_server(server, persist):
     server.register_instance(RTplot(persist=0))
-    server.register_introspection_functions()
+    #server.register_introspection_functions()
     server.serve_forever()
 
+def _start_twisted_server(port,persist):
+    r = RTplot(persist)
+    xmlrpc.addIntrospection(r)
+    reactor.listenTCP(port, server.Site(r))
+    reactor.run()
 
-def rpc_plot(port=None):
+
+def rpc_plot(port=0, persist=0):
     """
     XML RPC plot server factory function
     returns port if server successfully started or 0
     """
-    if port == None:
+    if port == 0:
         po = 9876
         while 1:
             if po not in __ports_used:break
             po += 1
         port = po
     try:
-        server = SimpleXMLRPCServer(("localhost", port),logRequests=False, allow_none=True)
-        server.register_introspection_functions()
-        p = Process(target=_start_server, args=(server, ))
+        #server = SimpleXMLRPCServer(("localhost", port),logRequests=False, allow_none=True)
+        #server.register_introspection_functions()
+        #p = Process(target=_start_server, args=(server, persist))
+        p = Process(target=_start_twisted_server, args=(port, persist))
         p.daemon = True
         p.start()
     except:

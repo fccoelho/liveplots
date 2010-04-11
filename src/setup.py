@@ -12,7 +12,7 @@ from setuptools import setup, find_packages
 
 
 setup(name='liveplots', 
-        version  = '0.1.1', 
+        version  = '0.2', 
         author = 'Flavio Codeco Coelho', 
         author_email = 'fccoelho@gmail.com', 
         url = 'http://code.google.com/p/liveplots/',
