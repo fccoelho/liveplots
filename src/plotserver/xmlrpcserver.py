@@ -4,20 +4,21 @@ __docformat__ = "restructuredtext en"
 import Gnuplot
 import numpy
 from SimpleXMLRPCServer import SimpleXMLRPCServer
-from twisted.web import xmlrpc, server
-from twisted.internet import reactor
+#from twisted.web import xmlrpc, server
+#from twisted.internet import reactor
 from multiprocessing import Process
 
+Gnuplot.GnuplotOpts.prefer_inline_data = 1
+Gnuplot.GnuplotOpts.prefer_fifo_data = 0
 
 __ports_used = []
 
-class RTplot(xmlrpc.XMLRPC):
+class RTplot():
     '''
     Real time plotting class based on Gnuplot
     '''
     allowNone = True
     def __init__(self, persist=0,debug=0,**kwargs):
-        xmlrpc.XMLRPC.__init__(self)
         self.gp = Gnuplot.Gnuplot(persist = persist, debug=debug)
         self.plots = []
 
@@ -26,6 +27,7 @@ class RTplot(xmlrpc.XMLRPC):
         Clears the figure.
         '''
         self.plots = []
+        return 0 
         #self.gp.reset()
     def close_plot(self):
         self.gp.close()
@@ -111,6 +113,7 @@ class RTplot(xmlrpc.XMLRPC):
                 self.gp.plot(*tuple(self.plots))
             else:
                 [self.gp.plot(pl) for pl in self.plots]
+                self.gp('unset multiplot')
         elif len(data.shape) >2:
                 pass
         else:
@@ -122,11 +125,13 @@ class RTplot(xmlrpc.XMLRPC):
                 self.gp.plot(*tuple(self.plots))
             else:
                 [self.gp.plot(pl) for pl in self.plots]
+                self.gp('unset multiplot')
+        return 0
 
 
         
 
-    def xmlrpc_histogram(self,data,labels=[],title='',multiplot=0):
+    def histogram(self,data,labels=[],title='',multiplot=0):
         '''
         Create a single/multiple Histogram plot from a numpy array or record array.
         
@@ -158,6 +163,7 @@ class RTplot(xmlrpc.XMLRPC):
                 self.gp.plot(*tuple(self.plots))
             else:
                 [self.gp.plot(pl) for pl in self.plots]
+                self.gp('unset multiplot')
         elif len(data.shape) >2:
             pass
         else:
@@ -168,14 +174,15 @@ class RTplot(xmlrpc.XMLRPC):
                 self.gp.plot(*tuple(self.plots))
             else:
                 [self.gp.plot(pl) for pl in self.plots]
+                self.gp('unset multiplot')
 
         return 0
 
 
         
 def _start_server(server, persist):
-    server.register_instance(RTplot(persist=0))
-    #server.register_introspection_functions()
+    server.register_instance(RTplot(persist=persist))
+    server.register_introspection_functions()
     server.serve_forever()
 
 def _start_twisted_server(port,persist):
@@ -193,19 +200,20 @@ def rpc_plot(port=0, persist=0):
     if port == 0:
         po = 9876
         while 1:
-            if po not in __ports_used:break
-            po += 1
-        port = po
-    try:
-        #server = SimpleXMLRPCServer(("localhost", port),logRequests=False, allow_none=True)
-        #server.register_introspection_functions()
-        #p = Process(target=_start_server, args=(server, persist))
-        p = Process(target=_start_twisted_server, args=(port, persist))
-        p.daemon = True
-        p.start()
-    except:
-        return 0
-    __ports_used.append(port)
+            if po in __ports_used:
+                po += 1
+                continue
+            try:
+               server = SimpleXMLRPCServer(("localhost", po),logRequests=False, allow_none=True)
+               p = Process(target=_start_server, args=(server, persist))
+               #p = Process(target=_start_twisted_server, args=(port, persist))
+               p.daemon = True
+               p.start()
+               break
+            except:         
+                po += 1
+
+    __ports_used.append(po)
     return port
     
 
