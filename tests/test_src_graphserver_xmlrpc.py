@@ -1,7 +1,7 @@
 from nose import SkipTest
 from nose.tools import assert_equal
-from graphserver.xmlrpc import RTplot
-from graphserver import xmlrpc
+from liveplots.xmlrpcserver import RTplot
+from liveplots import xmlrpcserver
 from numpy import random
 
 class TestRTplot:
@@ -45,6 +45,6 @@ class TestStartServer:
 
 class TestRpcPlot:
     def test_rpc_plot(self):
-        assert_equal(9800, xmlrpc.rpc_plot(9800))
+        assert_equal(9800, xmlrpcserver.rpc_plot(9800))
 
 

@@ -109,23 +109,23 @@ class RTplot():
                 else:
                     self.plots.append(Gnuplot.PlotItems.Data(x, row,with_=style))
                 i += 1
-            if not multiplot:
-                self.gp.plot(*tuple(self.plots))
-            else:
+            if multiplot:
                 [self.gp.plot(pl) for pl in self.plots]
                 self.gp('unset multiplot')
+            else:
+                self.gp.plot(*tuple(self.plots))
         elif len(data.shape) >2:
                 pass
         else:
 #            print data
-            if x==[]:
+            if x==[] :
                 x = numpy.arange(len(data))
             self.plots.append(Gnuplot.PlotItems.Data(x,data,title=labels[0],with_=style))
+            self.gp.plot(*tuple(self.plots))
             if not multiplot:
-                self.gp.plot(*tuple(self.plots))
-            else:
-                [self.gp.plot(pl) for pl in self.plots]
                 self.gp('unset multiplot')
+                
+        self.plots = []
         return 0
 
 
@@ -159,23 +159,26 @@ class RTplot():
                 m,bins = numpy.histogram(row,normed=True,bins=50)
                 d = zip(bins[:-1],m)
                 self.plots.append(Gnuplot.PlotItems.Data(d,title=labels[n]))
-            if not multiplot:
-                self.gp.plot(*tuple(self.plots))
-            else:
+            
+            if multiplot:
                 [self.gp.plot(pl) for pl in self.plots]
                 self.gp('unset multiplot')
+            else:
+                self.gp.plot(*tuple(self.plots))
+
+                
         elif len(data.shape) >2:
             pass
-        else:
+        elif len(data.shape) == 1:
             m,bins = numpy.histogram(data,normed=True,bins=50)
             d = zip(bins[:-1],m)
             self.plots.append(Gnuplot.PlotItems.Data(d,title=labels[0]))
-            if not multiplot:
-                self.gp.plot(*tuple(self.plots))
-            else:
-                [self.gp.plot(pl) for pl in self.plots]
+            self.gp.plot(*tuple(self.plots))
+            if multiplot:
                 self.gp('unset multiplot')
 
+                
+        self.plots = []
         return 0
 
 
@@ -198,22 +201,24 @@ def rpc_plot(port=0, persist=0):
     returns port if server successfully started or 0
     """
     if port == 0:
-        po = 9876
-        while 1:
-            if po in __ports_used:
-                po += 1
-                continue
-            try:
-               server = SimpleXMLRPCServer(("localhost", po),logRequests=False, allow_none=True)
-               p = Process(target=_start_server, args=(server, persist))
-               #p = Process(target=_start_twisted_server, args=(port, persist))
-               p.daemon = True
-               p.start()
-               break
-            except:         
-                po += 1
-
-    __ports_used.append(po)
+        port = 10001
+    while 1:
+        if port in __ports_used:
+            port += 1
+            continue
+        try:
+            server = SimpleXMLRPCServer(("localhost", port),logRequests=False, allow_none=True)
+            server.register_introspection_functions()
+            p = Process(target=_start_server, args=(server, persist))
+           
+            #p = Process(target=_start_twisted_server, args=(port, persist))
+            p.daemon = True
+            p.start()
+            break
+        except:         
+            port += 1
+    port = port
+    __ports_used.append(port)
     return port
     
 
