@@ -1,33 +1,48 @@
-from nose.tools import assert_equal
 from nose import SkipTest
+from nose.tools import assert_equal
+from liveplots.xmlrpcserver import RTplot
+from liveplots import xmlrpcserver
+from numpy import random
 
-class TestClearFig:
-    def test_clear_fig(self):
-        # assert_equal(expected, clearFig(self))
+class TestRTplot:
+    def test___init__(self):
+        r_tplot = RTplot(persist=0, debug=0)
+        assert isinstance(r_tplot, RTplot)
+        
+
+    def test_clearFig(self):
+        # r_tplot = RTplot(persist, debug)
+        # assert_equal(expected, r_tplot.clearFig())
         raise SkipTest # TODO: implement your test here
 
-class TestClosePlot:
     def test_close_plot(self):
-        # assert_equal(expected, close_plot(self))
+        # r_tplot = RTplot(persist, debug)
+        # assert_equal(expected, r_tplot.close_plot())
         raise SkipTest # TODO: implement your test here
 
-class TestScatter:
-    def test_scatter(self):
-        # assert_equal(expected, scatter(self, x, y, labels, title, style, jitter))
-        raise SkipTest # TODO: implement your test here
-
-class TestLines:
-    def test_lines(self):
-        # assert_equal(expected, lines(self, data, x, labels, title, style, multiplot))
-        raise SkipTest # TODO: implement your test here
-
-class TestHistogram:
     def test_histogram(self):
-        # assert_equal(expected, histogram(self, data, labels, title, multiplot))
+        data = random.normal(0,1,1000).tolist()
+        r_tplot = RTplot(persist=0, debug=0)
+        r_tplot.histogram(data, ['test'], 'test title')
+        
+    def test_lines(self):
+        data = random.normal(0,1,1000).tolist()
+        r_tplot = RTplot(persist=0, debug=0)
+        r_tplot.lines(data,[], ['test'], 'test title')
+        
+
+    def test_scatter(self):
+        data = random.normal(0,1,1000).tolist()
+        data2 = random.normal(0,2,1000).tolist()
+        r_tplot = RTplot(persist=0, debug=0)
+        r_tplot.scatter(data,data2, ['d1','d2'], 'test scatter')
+        
+
+class TestStartServer:
+    def test_start_server(self):
+        #assert_equal(expected, start_server(server))
         raise SkipTest # TODO: implement your test here
 
 class TestRpcPlot:
     def test_rpc_plot(self):
-        # assert_equal(expected, rpc_plot(port, persist))
-        raise SkipTest # TODO: implement your test here
-
+        assert_equal(9800, xmlrpcserver.rpc_plot(9800))
