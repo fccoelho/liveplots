@@ -86,7 +86,7 @@ class RTplot():
             - `style`: plot styles from gnuplot: lines, boxes, points, linespoints, etc.
             - `multiplot`: Whether to make multiple subplots
         '''
-
+        #self.gp('set style %s 1'%style)
         if multiplot:
             sq = numpy.sqrt(len(data))
             r= numpy.floor(sq);c=numpy.ceil(sq)
@@ -105,9 +105,9 @@ class RTplot():
                 if  x== []:
                     x = numpy.arange(len(row))
                 if labels:
-                    self.plots.append(Gnuplot.PlotItems.Data(x, row,title=labels[i],with_=style))
+                    self.plots.append(Gnuplot.PlotItems.Data(x, row,title=labels[i], with_=style))
                 else:
-                    self.plots.append(Gnuplot.PlotItems.Data(x, row,with_=style))
+                    self.plots.append(Gnuplot.PlotItems.Data(x, row, with_=style))
                 i += 1
             if multiplot:
                 [self.gp.plot(pl) for pl in self.plots]
@@ -118,7 +118,7 @@ class RTplot():
                 pass
         else:
 #            print data
-            if x==[] :
+            if x == [] :
                 x = numpy.arange(len(data))
             self.plots.append(Gnuplot.PlotItems.Data(x,data,title=labels[0],with_=style))
             self.gp.plot(*tuple(self.plots))
@@ -188,11 +188,6 @@ def _start_server(server, persist):
     server.register_introspection_functions()
     server.serve_forever()
 
-def _start_twisted_server(port,persist):
-    r = RTplot(persist)
-    xmlrpc.addIntrospection(r)
-    reactor.listenTCP(port, server.Site(r))
-    reactor.run()
 
 
 def rpc_plot(port=0, persist=0):

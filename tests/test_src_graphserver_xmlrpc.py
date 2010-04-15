@@ -28,7 +28,7 @@ class TestRTplot:
     def test_lines(self):
         data = random.normal(0,1,1000).tolist()
         r_tplot = RTplot(persist=0, debug=0)
-        r_tplot.lines(data,None, ['test'], 'test title')
+        r_tplot.lines(data,[], ['test'], 'test title')
         
 
     def test_scatter(self):
