@@ -36,17 +36,17 @@ class Monitor(object):
         self.wm = pyinotify.WatchManager()
         self.mask = self._get_mask(events)
         self.handler = _HandleEvents()
-        self.handler.set_action(self.visaction)
         if 'debug' in kwargs:
             self.handler.debug = kwargs['debug']
-        notifier = pyinotify.ThreadedNotifier(self.wm, self.handler)
-        notifier.start()
+        self.handler.set_action(self.visaction)
+        self.notifier = pyinotify.ThreadedNotifier(self.wm, self.handler)
+        self.notifier.start()
         wdd = self.wm.add_watch(self.filepath, self.mask, rec=True)
-        self.wm.rm_watch(wdd.values())
+        #self.wm.rm_watch(wdd.values())
         
     def _get_mask(self, events):
         '''
-        returns the mask for the notifier
+        Returns the mask for the notifier
         '''
         try:
             codes = [self.ValidEvents[e] for e in events]
@@ -59,6 +59,9 @@ class Monitor(object):
         else:
             mask = codes[0]
         return mask
+    
+    def stop(self):
+        self.notifier.stop()
                 
         
         

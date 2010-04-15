@@ -16,7 +16,7 @@ pserver2 = xmlrpclib.ServerProxy('http://localhost:%s'%port2, allow_none=True)
 
 # plotting data. 
 # pserver.histogram([data.tolist(),data2.tolist()],['data','data2'],'Two Histograms')
-# pserver2.lines([data.tolist(),data2.tolist()],None,['data','data2'],'Two plots')
+# pserver2.lines([data.tolist(),data2.tolist()],[],['data','data2'],'Two plots')
 
 #succession of 100 multiplot histograms
 t0 = time.time()
