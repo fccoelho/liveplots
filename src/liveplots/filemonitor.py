@@ -20,7 +20,7 @@ class Monitor(object):
                   'access':pyinotify.IN_ACCESS,
                   'attrib':pyinotify.IN_ATTRIB,
                   'modify':pyinotify.IN_MODIFY}
-    def __init__(self,filepath,events,visaction):
+    def __init__(self,filepath,events,visaction,**kwargs):
         '''
         Sets up monitoring of a file 
         
@@ -34,12 +34,14 @@ class Monitor(object):
         self.visaction = visaction
         # Setting up the watch manager
         self.wm = pyinotify.WatchManager()
-        mask = self._get_mask(events)
-        handler = _HandleEvents()
-        handler.set_action(self.visaction)
-        notifier = pyinotify.ThreadedNotifier(self.wm, handler)
+        self.mask = self._get_mask(events)
+        self.handler = _HandleEvents()
+        self.handler.set_action(self.visaction)
+        if 'debug' in kwargs:
+            self.handler.debug = kwargs['debug']
+        notifier = pyinotify.ThreadedNotifier(self.wm, self.handler)
         notifier.start()
-        wdd = self.wm.add_watch(self.filepath, mask, rec=True)
+        wdd = self.wm.add_watch(self.filepath, self.mask, rec=True)
         self.wm.rm_watch(wdd.values())
         
     def _get_mask(self, events):
@@ -61,27 +63,41 @@ class Monitor(object):
         
         
 class _HandleEvents(pyinotify.ProcessEvent):
-    
+    debug = 0
     def set_action(self,action):
         self.action = action
         
     def process_IN_CREATE(self, event):
-        print "Creating:", event.pathname
+        if self.debug:
+            print "Creating:", event.pathname
+        self.action(event.pathname)
 
     def process_IN_DELETE(self, event):
-        print "Removing:", event.pathname
+        if self.debug:
+            print "Removing:", event.pathname
+        self.action(event.pathname)
         
     def process_IN_ACCESS(self,event):
-        print "Accessing:", event.pathname
+        if self.debug:
+            print "Accessing:", event.pathname
+        self.action(event.pathname)
         
     def process_IN_ATTRIB(self,event):
-        print "Changing metadata:", event.pathname
+        if self.debug:
+            print "Changing metadata:", event.pathname
+        self.action(event.pathname)
         
     def process_IN_MODIFY(self,event):
-        print "Modifying:", event.pathname
+        if self.debug:
+            print "Modifying:", event.pathname
+        self.action(event.pathname)
         
     def process_IN_CLOSE_WRITE(self,event):
-        print "Closing writable file:", event.pathname
+        if self.debug:
+            print "Closing writable file:", event.pathname
+        self.action(event.pathname)
         
     def process_IN_CLOSE_NOWRITE(self,event):
-        print "Closing read-only file:", event.pathname
+        if self.debug:
+            print "Closing read-only file:", event.pathname
+        self.action(event.pathname)

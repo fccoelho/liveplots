@@ -1,0 +1,247 @@
+<html>
+<head>
+<title>liveplots.xmlrpcserver</title>
+</head>
+<body>
+liveplots.xmlrpcserver
+<style>
+.coverage pre {float: left; margin: 0px 1em; border: none;
+               padding: 0px; }
+.num pre { margin: 0px }
+.nocov, .nocov pre {background-color: #faa}
+.cov, .cov pre {background-color: #cfc}
+div.coverage div { clear: both; height: 1.1em}
+</style>
+<div class="stats">
+Covered: 117 lines<br/>
+Missed: 63 lines<br/>
+Skipped 42 lines<br/>
+Percent: 65 %<br/>
+
+</div>
+<div class="coverage">
+<div class="cov"><span class="num"><pre>  1</pre></span><pre>__author__=&quot;fccoelho@gmail.com&quot;</pre></div>
+<div class="cov"><span class="num"><pre>  2</pre></span><pre>__date__ =&quot;$26/02/2009 10:44:29$&quot;</pre></div>
+<div class="cov"><span class="num"><pre>  3</pre></span><pre>__docformat__ = &quot;restructuredtext en&quot;</pre></div>
+<div class="cov"><span class="num"><pre>  4</pre></span><pre>import Gnuplot</pre></div>
+<div class="cov"><span class="num"><pre>  5</pre></span><pre>import numpy</pre></div>
+<div class="cov"><span class="num"><pre>  6</pre></span><pre>from SimpleXMLRPCServer import SimpleXMLRPCServer</pre></div>
+<div class="skip"><span class="num"><pre>  7</pre></span><pre>#from twisted.web import xmlrpc, server</pre></div>
+<div class="skip"><span class="num"><pre>  8</pre></span><pre>#from twisted.internet import reactor</pre></div>
+<div class="cov"><span class="num"><pre>  9</pre></span><pre>from multiprocessing import Process</pre></div>
+<div class="skip"><span class="num"><pre> 10</pre></span><pre></pre></div>
+<div class="cov"><span class="num"><pre> 11</pre></span><pre>Gnuplot.GnuplotOpts.prefer_inline_data = 1</pre></div>
+<div class="cov"><span class="num"><pre> 12</pre></span><pre>Gnuplot.GnuplotOpts.prefer_fifo_data = 0</pre></div>
+<div class="skip"><span class="num"><pre> 13</pre></span><pre></pre></div>
+<div class="cov"><span class="num"><pre> 14</pre></span><pre>__ports_used = []</pre></div>
+<div class="skip"><span class="num"><pre> 15</pre></span><pre></pre></div>
+<div class="cov"><span class="num"><pre> 16</pre></span><pre>class RTplot():</pre></div>
+<div class="cov"><span class="num"><pre> 17</pre></span><pre>    '''</pre></div>
+<div class="cov"><span class="num"><pre> 18</pre></span><pre>    Real time plotting class based on Gnuplot</pre></div>
+<div class="cov"><span class="num"><pre> 19</pre></span><pre>    '''</pre></div>
+<div class="cov"><span class="num"><pre> 20</pre></span><pre>    allowNone = True</pre></div>
+<div class="cov"><span class="num"><pre> 21</pre></span><pre>    def __init__(self, persist=0,debug=0,**kwargs):</pre></div>
+<div class="cov"><span class="num"><pre> 22</pre></span><pre>        self.gp = Gnuplot.Gnuplot(persist = persist, debug=debug)</pre></div>
+<div class="cov"><span class="num"><pre> 23</pre></span><pre>        self.plots = []</pre></div>
+<div class="skip"><span class="num"><pre> 24</pre></span><pre></pre></div>
+<div class="cov"><span class="num"><pre> 25</pre></span><pre>    def clearFig(self):</pre></div>
+<div class="cov"><span class="num"><pre> 26</pre></span><pre>        '''</pre></div>
+<div class="cov"><span class="num"><pre> 27</pre></span><pre>        Clears the figure.</pre></div>
+<div class="cov"><span class="num"><pre> 28</pre></span><pre>        '''</pre></div>
+<div class="nocov"><span class="num"><pre> 29</pre></span><pre>        self.plots = []</pre></div>
+<div class="nocov"><span class="num"><pre> 30</pre></span><pre>        return 0 </pre></div>
+<div class="skip"><span class="num"><pre> 31</pre></span><pre>        #self.gp.reset()</pre></div>
+<div class="cov"><span class="num"><pre> 32</pre></span><pre>    def close_plot(self):</pre></div>
+<div class="nocov"><span class="num"><pre> 33</pre></span><pre>        self.gp.close()</pre></div>
+<div class="skip"><span class="num"><pre> 34</pre></span><pre></pre></div>
+<div class="cov"><span class="num"><pre> 35</pre></span><pre>    def scatter(self,x,y,labels=[],title='',style='points', jitter = True):</pre></div>
+<div class="cov"><span class="num"><pre> 36</pre></span><pre>        &quot;&quot;&quot;</pre></div>
+<div class="cov"><span class="num"><pre> 37</pre></span><pre>        Makes scatter plots from numpy arrays.</pre></div>
+<div class="cov"><span class="num"><pre> 38</pre></span><pre>        if x and are multidimensional(lists of lists), multiple scatter plots will be generated, pairing rows.</pre></div>
+<div class="skip"><span class="num"><pre> 39</pre></span><pre>        </pre></div>
+<div class="cov"><span class="num"><pre> 40</pre></span><pre>        :Parameters:</pre></div>
+<div class="cov"><span class="num"><pre> 41</pre></span><pre>            -`x`: list of numbers or list of lists</pre></div>
+<div class="cov"><span class="num"><pre> 42</pre></span><pre>            -`y`: list of numbers or list of lists</pre></div>
+<div class="cov"><span class="num"><pre> 43</pre></span><pre>        &quot;&quot;&quot;</pre></div>
+<div class="cov"><span class="num"><pre> 44</pre></span><pre>        if jitter:</pre></div>
+<div class="cov"><span class="num"><pre> 45</pre></span><pre>            jt = numpy.random.normal(1, 1e-4,1)[0]</pre></div>
+<div class="nocov"><span class="num"><pre> 46</pre></span><pre>        else:</pre></div>
+<div class="nocov"><span class="num"><pre> 47</pre></span><pre>            jt = 1</pre></div>
+<div class="cov"><span class="num"><pre> 48</pre></span><pre>        x = numpy.array(x)</pre></div>
+<div class="cov"><span class="num"><pre> 49</pre></span><pre>        y = numpy.array(y)</pre></div>
+<div class="skip"><span class="num"><pre> 50</pre></span><pre>        </pre></div>
+<div class="cov"><span class="num"><pre> 51</pre></span><pre>        if x.shape != y.shape:</pre></div>
+<div class="nocov"><span class="num"><pre> 52</pre></span><pre>            raise ValueError(&quot;x, %s and y, %s arrays must have the same shape.&quot;%(x.shape,y.shape))</pre></div>
+<div class="cov"><span class="num"><pre> 53</pre></span><pre>        if labels:</pre></div>
+<div class="cov"><span class="num"><pre> 54</pre></span><pre>            if len(x.shape)==1:</pre></div>
+<div class="cov"><span class="num"><pre> 55</pre></span><pre>                if len(labels) !=2:</pre></div>
+<div class="nocov"><span class="num"><pre> 56</pre></span><pre>                    raise ValueError(&quot;Labels list should contain exactly 2 elements, but has %s&quot;%len(labels))</pre></div>
+<div class="nocov"><span class="num"><pre> 57</pre></span><pre>            else:</pre></div>
+<div class="nocov"><span class="num"><pre> 58</pre></span><pre>                if len(labels) != x.shape[0]:</pre></div>
+<div class="nocov"><span class="num"><pre> 59</pre></span><pre>                    raise ValueError(&quot;labels list must have exactly %s items, but has %s.&quot;%(x.shape[0],len(labels)))</pre></div>
+<div class="skip"><span class="num"><pre> 60</pre></span><pre></pre></div>
+<div class="skip"><span class="num"><pre> 61</pre></span><pre></pre></div>
+<div class="cov"><span class="num"><pre> 62</pre></span><pre>        self.gp('set title &quot;%s&quot;'%title)</pre></div>
+<div class="cov"><span class="num"><pre> 63</pre></span><pre>        if not labels:</pre></div>
+<div class="nocov"><span class="num"><pre> 64</pre></span><pre>            labels = ['s%s'%i for i in range(x.shape[0])]</pre></div>
+<div class="cov"><span class="num"><pre> 65</pre></span><pre>        if len(x.shape) &gt; 1 and len(x.shape) &lt;= 2:</pre></div>
+<div class="nocov"><span class="num"><pre> 66</pre></span><pre>            i = 0</pre></div>
+<div class="nocov"><span class="num"><pre> 67</pre></span><pre>            for n in range(x.shape[0]):</pre></div>
+<div class="nocov"><span class="num"><pre> 68</pre></span><pre>                self.plots.append(Gnuplot.PlotItems.Data(x[n]*jt,y[n]*jt,title=labels[i],with_=style))</pre></div>
+<div class="nocov"><span class="num"><pre> 69</pre></span><pre>                i += 1</pre></div>
+<div class="nocov"><span class="num"><pre> 70</pre></span><pre>            self.gp.plot(*tuple(self.plots))</pre></div>
+<div class="cov"><span class="num"><pre> 71</pre></span><pre>        elif len(x.shape) &gt;2:</pre></div>
+<div class="nocov"><span class="num"><pre> 72</pre></span><pre>                pass</pre></div>
+<div class="cov"><span class="num"><pre> 73</pre></span><pre>        else:</pre></div>
+<div class="skip"><span class="num"><pre> 74</pre></span><pre>            #print data</pre></div>
+<div class="cov"><span class="num"><pre> 75</pre></span><pre>            self.plots.append(Gnuplot.PlotItems.Data(x*jt,y*jt,title=labels[0],with_=style))</pre></div>
+<div class="cov"><span class="num"><pre> 76</pre></span><pre>            self.gp.plot(*tuple(self.plots))</pre></div>
+<div class="skip"><span class="num"><pre> 77</pre></span><pre>        </pre></div>
+<div class="cov"><span class="num"><pre> 78</pre></span><pre>    def lines(self, data, x=[], labels=[],title='',style='lines', multiplot=0):</pre></div>
+<div class="cov"><span class="num"><pre> 79</pre></span><pre>        '''</pre></div>
+<div class="cov"><span class="num"><pre> 80</pre></span><pre>        Create a single/multiple line plot from a numpy array or record array.</pre></div>
+<div class="skip"><span class="num"><pre> 81</pre></span><pre>        </pre></div>
+<div class="cov"><span class="num"><pre> 82</pre></span><pre>        :Parameters:</pre></div>
+<div class="cov"><span class="num"><pre> 83</pre></span><pre>            - `data`: must be a list of lists.</pre></div>
+<div class="cov"><span class="num"><pre> 84</pre></span><pre>            - `x`: x values for the series: list</pre></div>
+<div class="cov"><span class="num"><pre> 85</pre></span><pre>            - `labels`: is a list of strings to serve as legend labels</pre></div>
+<div class="cov"><span class="num"><pre> 86</pre></span><pre>            - `style`: plot styles from gnuplot: lines, boxes, points, linespoints, etc.</pre></div>
+<div class="cov"><span class="num"><pre> 87</pre></span><pre>            - `multiplot`: Whether to make multiple subplots</pre></div>
+<div class="cov"><span class="num"><pre> 88</pre></span><pre>        '''</pre></div>
+<div class="skip"><span class="num"><pre> 89</pre></span><pre>        #self.gp('set style %s 1'%style)</pre></div>
+<div class="cov"><span class="num"><pre> 90</pre></span><pre>        if multiplot:</pre></div>
+<div class="nocov"><span class="num"><pre> 91</pre></span><pre>            sq = numpy.sqrt(len(data))</pre></div>
+<div class="nocov"><span class="num"><pre> 92</pre></span><pre>            r= numpy.floor(sq);c=numpy.ceil(sq)</pre></div>
+<div class="nocov"><span class="num"><pre> 93</pre></span><pre>            if len(data) == 3:</pre></div>
+<div class="nocov"><span class="num"><pre> 94</pre></span><pre>                r=3;c=1</pre></div>
+<div class="nocov"><span class="num"><pre> 95</pre></span><pre>            self.gp('set multiplot layout %s,%s title &quot;%s&quot;'%(r, c, title))</pre></div>
+<div class="cov"><span class="num"><pre> 96</pre></span><pre>        else:</pre></div>
+<div class="cov"><span class="num"><pre> 97</pre></span><pre>            self.gp('set title &quot;%s&quot;'%title)</pre></div>
+<div class="skip"><span class="num"><pre> 98</pre></span><pre>            </pre></div>
+<div class="cov"><span class="num"><pre> 99</pre></span><pre>        assert isinstance (data, list)</pre></div>
+<div class="cov"><span class="num"><pre>100</pre></span><pre>        data = numpy.array(data)</pre></div>
+<div class="skip"><span class="num"><pre>101</pre></span><pre>        </pre></div>
+<div class="cov"><span class="num"><pre>102</pre></span><pre>        if len(data.shape) &gt; 1 and len(data.shape) &lt;= 2:</pre></div>
+<div class="nocov"><span class="num"><pre>103</pre></span><pre>            i = 0</pre></div>
+<div class="nocov"><span class="num"><pre>104</pre></span><pre>            for row in data:</pre></div>
+<div class="nocov"><span class="num"><pre>105</pre></span><pre>                if  x== []:</pre></div>
+<div class="nocov"><span class="num"><pre>106</pre></span><pre>                    x = numpy.arange(len(row))</pre></div>
+<div class="nocov"><span class="num"><pre>107</pre></span><pre>                if labels:</pre></div>
+<div class="nocov"><span class="num"><pre>108</pre></span><pre>                    self.plots.append(Gnuplot.PlotItems.Data(x, row,title=labels[i], with_=style))</pre></div>
+<div class="nocov"><span class="num"><pre>109</pre></span><pre>                else:</pre></div>
+<div class="nocov"><span class="num"><pre>110</pre></span><pre>                    self.plots.append(Gnuplot.PlotItems.Data(x, row, with_=style))</pre></div>
+<div class="nocov"><span class="num"><pre>111</pre></span><pre>                i += 1</pre></div>
+<div class="nocov"><span class="num"><pre>112</pre></span><pre>            if multiplot:</pre></div>
+<div class="nocov"><span class="num"><pre>113</pre></span><pre>                [self.gp.plot(pl) for pl in self.plots]</pre></div>
+<div class="nocov"><span class="num"><pre>114</pre></span><pre>                self.gp('unset multiplot')</pre></div>
+<div class="nocov"><span class="num"><pre>115</pre></span><pre>            else:</pre></div>
+<div class="nocov"><span class="num"><pre>116</pre></span><pre>                self.gp.plot(*tuple(self.plots))</pre></div>
+<div class="cov"><span class="num"><pre>117</pre></span><pre>        elif len(data.shape) &gt;2:</pre></div>
+<div class="nocov"><span class="num"><pre>118</pre></span><pre>                pass</pre></div>
+<div class="cov"><span class="num"><pre>119</pre></span><pre>        else:</pre></div>
+<div class="skip"><span class="num"><pre>120</pre></span><pre>#            print data</pre></div>
+<div class="cov"><span class="num"><pre>121</pre></span><pre>            if x == [] :</pre></div>
+<div class="cov"><span class="num"><pre>122</pre></span><pre>                x = numpy.arange(len(data))</pre></div>
+<div class="cov"><span class="num"><pre>123</pre></span><pre>            self.plots.append(Gnuplot.PlotItems.Data(x,data,title=labels[0],with_=style))</pre></div>
+<div class="cov"><span class="num"><pre>124</pre></span><pre>            self.gp.plot(*tuple(self.plots))</pre></div>
+<div class="cov"><span class="num"><pre>125</pre></span><pre>            if not multiplot:</pre></div>
+<div class="cov"><span class="num"><pre>126</pre></span><pre>                self.gp('unset multiplot')</pre></div>
+<div class="skip"><span class="num"><pre>127</pre></span><pre>                </pre></div>
+<div class="cov"><span class="num"><pre>128</pre></span><pre>        self.plots = []</pre></div>
+<div class="cov"><span class="num"><pre>129</pre></span><pre>        return 0</pre></div>
+<div class="skip"><span class="num"><pre>130</pre></span><pre></pre></div>
+<div class="skip"><span class="num"><pre>131</pre></span><pre></pre></div>
+<div class="skip"><span class="num"><pre>132</pre></span><pre>        </pre></div>
+<div class="skip"><span class="num"><pre>133</pre></span><pre></pre></div>
+<div class="cov"><span class="num"><pre>134</pre></span><pre>    def histogram(self,data,labels=[],title='',multiplot=0):</pre></div>
+<div class="cov"><span class="num"><pre>135</pre></span><pre>        '''</pre></div>
+<div class="cov"><span class="num"><pre>136</pre></span><pre>        Create a single/multiple Histogram plot from a numpy array or record array.</pre></div>
+<div class="skip"><span class="num"><pre>137</pre></span><pre>        </pre></div>
+<div class="cov"><span class="num"><pre>138</pre></span><pre>        :Parameters:</pre></div>
+<div class="cov"><span class="num"><pre>139</pre></span><pre>            - `data`: must be a list of lists.</pre></div>
+<div class="cov"><span class="num"><pre>140</pre></span><pre>            - `labels`: is a list of strings to serve as legend labels</pre></div>
+<div class="cov"><span class="num"><pre>141</pre></span><pre>            - `multiplot`: Whether to make multiple subplots</pre></div>
+<div class="cov"><span class="num"><pre>142</pre></span><pre>        '''</pre></div>
+<div class="cov"><span class="num"><pre>143</pre></span><pre>        if multiplot:</pre></div>
+<div class="nocov"><span class="num"><pre>144</pre></span><pre>            sq = numpy.sqrt(len(data))</pre></div>
+<div class="nocov"><span class="num"><pre>145</pre></span><pre>            r= numpy.floor(sq);c=numpy.ceil(sq)</pre></div>
+<div class="nocov"><span class="num"><pre>146</pre></span><pre>            if len(data) == 3:</pre></div>
+<div class="nocov"><span class="num"><pre>147</pre></span><pre>                r=3;c=1</pre></div>
+<div class="nocov"><span class="num"><pre>148</pre></span><pre>            self.gp('set multiplot layout %s,%s title &quot;%s&quot;'%(r, c, title))</pre></div>
+<div class="cov"><span class="num"><pre>149</pre></span><pre>        else:</pre></div>
+<div class="cov"><span class="num"><pre>150</pre></span><pre>            self.gp('set title &quot;%s&quot;'%title)</pre></div>
+<div class="cov"><span class="num"><pre>151</pre></span><pre>        self.gp('set style data boxes')</pre></div>
+<div class="skip"><span class="num"><pre>152</pre></span><pre>        </pre></div>
+<div class="cov"><span class="num"><pre>153</pre></span><pre>        assert isinstance (data, list)</pre></div>
+<div class="cov"><span class="num"><pre>154</pre></span><pre>        data = numpy.array(data)</pre></div>
+<div class="cov"><span class="num"><pre>155</pre></span><pre>        if not labels:</pre></div>
+<div class="nocov"><span class="num"><pre>156</pre></span><pre>            labels = ['Var_%s'%i for i in range(data.shape[0])]</pre></div>
+<div class="cov"><span class="num"><pre>157</pre></span><pre>        if len(data.shape) &gt; 1 and len(data.shape) &lt;= 2:</pre></div>
+<div class="nocov"><span class="num"><pre>158</pre></span><pre>            for n,row in enumerate(data):</pre></div>
+<div class="nocov"><span class="num"><pre>159</pre></span><pre>                m,bins = numpy.histogram(row,normed=True,bins=50)</pre></div>
+<div class="nocov"><span class="num"><pre>160</pre></span><pre>                d = zip(bins[:-1],m)</pre></div>
+<div class="nocov"><span class="num"><pre>161</pre></span><pre>                self.plots.append(Gnuplot.PlotItems.Data(d,title=labels[n]))</pre></div>
+<div class="skip"><span class="num"><pre>162</pre></span><pre>            </pre></div>
+<div class="nocov"><span class="num"><pre>163</pre></span><pre>            if multiplot:</pre></div>
+<div class="nocov"><span class="num"><pre>164</pre></span><pre>                [self.gp.plot(pl) for pl in self.plots]</pre></div>
+<div class="nocov"><span class="num"><pre>165</pre></span><pre>                self.gp('unset multiplot')</pre></div>
+<div class="nocov"><span class="num"><pre>166</pre></span><pre>            else:</pre></div>
+<div class="nocov"><span class="num"><pre>167</pre></span><pre>                self.gp.plot(*tuple(self.plots))</pre></div>
+<div class="skip"><span class="num"><pre>168</pre></span><pre></pre></div>
+<div class="skip"><span class="num"><pre>169</pre></span><pre>                </pre></div>
+<div class="cov"><span class="num"><pre>170</pre></span><pre>        elif len(data.shape) &gt;2:</pre></div>
+<div class="nocov"><span class="num"><pre>171</pre></span><pre>            pass</pre></div>
+<div class="cov"><span class="num"><pre>172</pre></span><pre>        elif len(data.shape) == 1:</pre></div>
+<div class="cov"><span class="num"><pre>173</pre></span><pre>            m,bins = numpy.histogram(data,normed=True,bins=50)</pre></div>
+<div class="cov"><span class="num"><pre>174</pre></span><pre>            d = zip(bins[:-1],m)</pre></div>
+<div class="cov"><span class="num"><pre>175</pre></span><pre>            self.plots.append(Gnuplot.PlotItems.Data(d,title=labels[0]))</pre></div>
+<div class="cov"><span class="num"><pre>176</pre></span><pre>            self.gp.plot(*tuple(self.plots))</pre></div>
+<div class="cov"><span class="num"><pre>177</pre></span><pre>            if multiplot:</pre></div>
+<div class="nocov"><span class="num"><pre>178</pre></span><pre>                self.gp('unset multiplot')</pre></div>
+<div class="skip"><span class="num"><pre>179</pre></span><pre></pre></div>
+<div class="skip"><span class="num"><pre>180</pre></span><pre>                </pre></div>
+<div class="cov"><span class="num"><pre>181</pre></span><pre>        self.plots = []</pre></div>
+<div class="cov"><span class="num"><pre>182</pre></span><pre>        return 0</pre></div>
+<div class="skip"><span class="num"><pre>183</pre></span><pre></pre></div>
+<div class="skip"><span class="num"><pre>184</pre></span><pre></pre></div>
+<div class="skip"><span class="num"><pre>185</pre></span><pre>        </pre></div>
+<div class="cov"><span class="num"><pre>186</pre></span><pre>def _start_server(server, persist):</pre></div>
+<div class="nocov"><span class="num"><pre>187</pre></span><pre>    server.register_instance(RTplot(persist=persist))</pre></div>
+<div class="nocov"><span class="num"><pre>188</pre></span><pre>    server.register_introspection_functions()</pre></div>
+<div class="nocov"><span class="num"><pre>189</pre></span><pre>    server.serve_forever()</pre></div>
+<div class="skip"><span class="num"><pre>190</pre></span><pre></pre></div>
+<div class="skip"><span class="num"><pre>191</pre></span><pre></pre></div>
+<div class="skip"><span class="num"><pre>192</pre></span><pre></pre></div>
+<div class="cov"><span class="num"><pre>193</pre></span><pre>def rpc_plot(port=0, persist=0):</pre></div>
+<div class="cov"><span class="num"><pre>194</pre></span><pre>    &quot;&quot;&quot;</pre></div>
+<div class="cov"><span class="num"><pre>195</pre></span><pre>    XML RPC plot server factory function</pre></div>
+<div class="cov"><span class="num"><pre>196</pre></span><pre>    returns port if server successfully started or 0</pre></div>
+<div class="cov"><span class="num"><pre>197</pre></span><pre>    &quot;&quot;&quot;</pre></div>
+<div class="cov"><span class="num"><pre>198</pre></span><pre>    if port == 0:</pre></div>
+<div class="nocov"><span class="num"><pre>199</pre></span><pre>        port = 10001</pre></div>
+<div class="cov"><span class="num"><pre>200</pre></span><pre>    while 1:</pre></div>
+<div class="cov"><span class="num"><pre>201</pre></span><pre>        if port in __ports_used:</pre></div>
+<div class="nocov"><span class="num"><pre>202</pre></span><pre>            port += 1</pre></div>
+<div class="nocov"><span class="num"><pre>203</pre></span><pre>            continue</pre></div>
+<div class="cov"><span class="num"><pre>204</pre></span><pre>        try:</pre></div>
+<div class="cov"><span class="num"><pre>205</pre></span><pre>            server = SimpleXMLRPCServer((&quot;localhost&quot;, port),logRequests=False, allow_none=True)</pre></div>
+<div class="cov"><span class="num"><pre>206</pre></span><pre>            server.register_introspection_functions()</pre></div>
+<div class="cov"><span class="num"><pre>207</pre></span><pre>            p = Process(target=_start_server, args=(server, persist))</pre></div>
+<div class="skip"><span class="num"><pre>208</pre></span><pre>           </pre></div>
+<div class="skip"><span class="num"><pre>209</pre></span><pre>            #p = Process(target=_start_twisted_server, args=(port, persist))</pre></div>
+<div class="cov"><span class="num"><pre>210</pre></span><pre>            p.daemon = True</pre></div>
+<div class="cov"><span class="num"><pre>211</pre></span><pre>            p.start()</pre></div>
+<div class="cov"><span class="num"><pre>212</pre></span><pre>            break</pre></div>
+<div class="nocov"><span class="num"><pre>213</pre></span><pre>        except:         </pre></div>
+<div class="nocov"><span class="num"><pre>214</pre></span><pre>            port += 1</pre></div>
+<div class="cov"><span class="num"><pre>215</pre></span><pre>    port = port</pre></div>
+<div class="cov"><span class="num"><pre>216</pre></span><pre>    __ports_used.append(port)</pre></div>
+<div class="cov"><span class="num"><pre>217</pre></span><pre>    return port</pre></div>
+<div class="skip"><span class="num"><pre>218</pre></span><pre>    </pre></div>
+<div class="skip"><span class="num"><pre>219</pre></span><pre></pre></div>
+<div class="cov"><span class="num"><pre>220</pre></span><pre>if __name__ == &quot;__main__&quot;:</pre></div>
+<div class="nocov"><span class="num"><pre>221</pre></span><pre>    pass</pre></div>
+<div class="skip"><span class="num"><pre>222</pre></span><pre></pre></div>
+</div>
+</body>
+</html>

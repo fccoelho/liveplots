@@ -1,0 +1,128 @@
+<html>
+<head>
+<title>liveplots.filemonitor</title>
+</head>
+<body>
+liveplots.filemonitor
+<style>
+.coverage pre {float: left; margin: 0px 1em; border: none;
+               padding: 0px; }
+.num pre { margin: 0px }
+.nocov, .nocov pre {background-color: #faa}
+.cov, .cov pre {background-color: #cfc}
+div.coverage div { clear: both; height: 1.1em}
+</style>
+<div class="stats">
+Covered: 63 lines<br/>
+Missed: 25 lines<br/>
+Skipped 15 lines<br/>
+Percent: 71 %<br/>
+
+</div>
+<div class="coverage">
+<div class="cov"><span class="num"><pre>  1</pre></span><pre>'''</pre></div>
+<div class="cov"><span class="num"><pre>  2</pre></span><pre>Created on 15/04/2010</pre></div>
+<div class="skip"><span class="num"><pre>  3</pre></span><pre></pre></div>
+<div class="cov"><span class="num"><pre>  4</pre></span><pre>@author: fccoelho</pre></div>
+<div class="cov"><span class="num"><pre>  5</pre></span><pre>'''</pre></div>
+<div class="cov"><span class="num"><pre>  6</pre></span><pre>import sys</pre></div>
+<div class="cov"><span class="num"><pre>  7</pre></span><pre>try:</pre></div>
+<div class="cov"><span class="num"><pre>  8</pre></span><pre>    import pyinotify</pre></div>
+<div class="nocov"><span class="num"><pre>  9</pre></span><pre>except:</pre></div>
+<div class="nocov"><span class="num"><pre> 10</pre></span><pre>    raise TypeError('Filemonitor cannot cannot be used on %s platform'%sys.platform)</pre></div>
+<div class="skip"><span class="num"><pre> 11</pre></span><pre></pre></div>
+<div class="cov"><span class="num"><pre> 12</pre></span><pre>class Monitor(object):</pre></div>
+<div class="cov"><span class="num"><pre> 13</pre></span><pre>    '''</pre></div>
+<div class="cov"><span class="num"><pre> 14</pre></span><pre>    Monitors a file for changes and triggers a visualization action</pre></div>
+<div class="cov"><span class="num"><pre> 15</pre></span><pre>    '''</pre></div>
+<div class="cov"><span class="num"><pre> 16</pre></span><pre>    ValidEvents ={'create':pyinotify.IN_CREATE,</pre></div>
+<div class="cov"><span class="num"><pre> 17</pre></span><pre>                  'delete':pyinotify.IN_DELETE,</pre></div>
+<div class="cov"><span class="num"><pre> 18</pre></span><pre>                  'close_write':pyinotify.IN_CLOSE_WRITE,</pre></div>
+<div class="cov"><span class="num"><pre> 19</pre></span><pre>                  &quot;close_nowrite&quot;:pyinotify.IN_CLOSE_NOWRITE,</pre></div>
+<div class="cov"><span class="num"><pre> 20</pre></span><pre>                  'access':pyinotify.IN_ACCESS,</pre></div>
+<div class="cov"><span class="num"><pre> 21</pre></span><pre>                  'attrib':pyinotify.IN_ATTRIB,</pre></div>
+<div class="cov"><span class="num"><pre> 22</pre></span><pre>                  'modify':pyinotify.IN_MODIFY}</pre></div>
+<div class="cov"><span class="num"><pre> 23</pre></span><pre>    def __init__(self,filepath,events,visaction,**kwargs):</pre></div>
+<div class="cov"><span class="num"><pre> 24</pre></span><pre>        '''</pre></div>
+<div class="cov"><span class="num"><pre> 25</pre></span><pre>        Sets up monitoring of a file </pre></div>
+<div class="skip"><span class="num"><pre> 26</pre></span><pre>        </pre></div>
+<div class="cov"><span class="num"><pre> 27</pre></span><pre>        :Parameters:</pre></div>
+<div class="cov"><span class="num"><pre> 28</pre></span><pre>            - `filepath`: full path of the file to monitor</pre></div>
+<div class="cov"><span class="num"><pre> 29</pre></span><pre>            - `event`: events to monitor: list of strings</pre></div>
+<div class="cov"><span class="num"><pre> 30</pre></span><pre>            - `visaction`: Callable which will perform the action which takes filepath as argument</pre></div>
+<div class="cov"><span class="num"><pre> 31</pre></span><pre>        '''</pre></div>
+<div class="cov"><span class="num"><pre> 32</pre></span><pre>        self.filepath = filepath</pre></div>
+<div class="cov"><span class="num"><pre> 33</pre></span><pre>        self.events = events</pre></div>
+<div class="cov"><span class="num"><pre> 34</pre></span><pre>        self.visaction = visaction</pre></div>
+<div class="skip"><span class="num"><pre> 35</pre></span><pre>        # Setting up the watch manager</pre></div>
+<div class="cov"><span class="num"><pre> 36</pre></span><pre>        self.wm = pyinotify.WatchManager()</pre></div>
+<div class="cov"><span class="num"><pre> 37</pre></span><pre>        self.mask = self._get_mask(events)</pre></div>
+<div class="cov"><span class="num"><pre> 38</pre></span><pre>        self.handler = _HandleEvents()</pre></div>
+<div class="cov"><span class="num"><pre> 39</pre></span><pre>        self.handler.set_action(self.visaction)</pre></div>
+<div class="cov"><span class="num"><pre> 40</pre></span><pre>        if 'debug' in kwargs:</pre></div>
+<div class="cov"><span class="num"><pre> 41</pre></span><pre>            self.handler.debug = kwargs['debug']</pre></div>
+<div class="cov"><span class="num"><pre> 42</pre></span><pre>        notifier = pyinotify.ThreadedNotifier(self.wm, self.handler)</pre></div>
+<div class="cov"><span class="num"><pre> 43</pre></span><pre>        notifier.start()</pre></div>
+<div class="cov"><span class="num"><pre> 44</pre></span><pre>        wdd = self.wm.add_watch(self.filepath, self.mask, rec=True)</pre></div>
+<div class="cov"><span class="num"><pre> 45</pre></span><pre>        self.wm.rm_watch(wdd.values())</pre></div>
+<div class="skip"><span class="num"><pre> 46</pre></span><pre>        </pre></div>
+<div class="cov"><span class="num"><pre> 47</pre></span><pre>    def _get_mask(self, events):</pre></div>
+<div class="cov"><span class="num"><pre> 48</pre></span><pre>        '''</pre></div>
+<div class="cov"><span class="num"><pre> 49</pre></span><pre>        returns the mask for the notifier</pre></div>
+<div class="cov"><span class="num"><pre> 50</pre></span><pre>        '''</pre></div>
+<div class="cov"><span class="num"><pre> 51</pre></span><pre>        try:</pre></div>
+<div class="cov"><span class="num"><pre> 52</pre></span><pre>            codes = [self.ValidEvents[e] for e in events]</pre></div>
+<div class="nocov"><span class="num"><pre> 53</pre></span><pre>        except KeyError:</pre></div>
+<div class="nocov"><span class="num"><pre> 54</pre></span><pre>            raise KeyError('%s is not a valid event'%e)</pre></div>
+<div class="cov"><span class="num"><pre> 55</pre></span><pre>        if len(codes) &gt; 1:</pre></div>
+<div class="cov"><span class="num"><pre> 56</pre></span><pre>            mask = codes[0]</pre></div>
+<div class="cov"><span class="num"><pre> 57</pre></span><pre>            for c in codes[1:]:</pre></div>
+<div class="cov"><span class="num"><pre> 58</pre></span><pre>                mask = mask | c</pre></div>
+<div class="cov"><span class="num"><pre> 59</pre></span><pre>        else:</pre></div>
+<div class="cov"><span class="num"><pre> 60</pre></span><pre>            mask = codes[0]</pre></div>
+<div class="cov"><span class="num"><pre> 61</pre></span><pre>        return mask</pre></div>
+<div class="skip"><span class="num"><pre> 62</pre></span><pre>                </pre></div>
+<div class="skip"><span class="num"><pre> 63</pre></span><pre>        </pre></div>
+<div class="skip"><span class="num"><pre> 64</pre></span><pre>        </pre></div>
+<div class="cov"><span class="num"><pre> 65</pre></span><pre>class _HandleEvents(pyinotify.ProcessEvent):</pre></div>
+<div class="cov"><span class="num"><pre> 66</pre></span><pre>    debug = 0</pre></div>
+<div class="cov"><span class="num"><pre> 67</pre></span><pre>    def set_action(self,action):</pre></div>
+<div class="cov"><span class="num"><pre> 68</pre></span><pre>        self.action = action</pre></div>
+<div class="skip"><span class="num"><pre> 69</pre></span><pre>        </pre></div>
+<div class="cov"><span class="num"><pre> 70</pre></span><pre>    def process_IN_CREATE(self, event):</pre></div>
+<div class="nocov"><span class="num"><pre> 71</pre></span><pre>        if self.debug:</pre></div>
+<div class="nocov"><span class="num"><pre> 72</pre></span><pre>            print &quot;Creating:&quot;, event.pathname</pre></div>
+<div class="nocov"><span class="num"><pre> 73</pre></span><pre>        self.action(event.pathname)</pre></div>
+<div class="skip"><span class="num"><pre> 74</pre></span><pre></pre></div>
+<div class="cov"><span class="num"><pre> 75</pre></span><pre>    def process_IN_DELETE(self, event):</pre></div>
+<div class="nocov"><span class="num"><pre> 76</pre></span><pre>        if self.debug:</pre></div>
+<div class="nocov"><span class="num"><pre> 77</pre></span><pre>            print &quot;Removing:&quot;, event.pathname</pre></div>
+<div class="nocov"><span class="num"><pre> 78</pre></span><pre>        self.action(event.pathname)</pre></div>
+<div class="skip"><span class="num"><pre> 79</pre></span><pre>        </pre></div>
+<div class="cov"><span class="num"><pre> 80</pre></span><pre>    def process_IN_ACCESS(self,event):</pre></div>
+<div class="nocov"><span class="num"><pre> 81</pre></span><pre>        if self.debug:</pre></div>
+<div class="nocov"><span class="num"><pre> 82</pre></span><pre>            print &quot;Accessing:&quot;, event.pathname</pre></div>
+<div class="nocov"><span class="num"><pre> 83</pre></span><pre>        self.action(event.pathname)</pre></div>
+<div class="skip"><span class="num"><pre> 84</pre></span><pre>        </pre></div>
+<div class="cov"><span class="num"><pre> 85</pre></span><pre>    def process_IN_ATTRIB(self,event):</pre></div>
+<div class="nocov"><span class="num"><pre> 86</pre></span><pre>        if self.debug:</pre></div>
+<div class="nocov"><span class="num"><pre> 87</pre></span><pre>            print &quot;Changing metadata:&quot;, event.pathname</pre></div>
+<div class="nocov"><span class="num"><pre> 88</pre></span><pre>        self.action(event.pathname)</pre></div>
+<div class="skip"><span class="num"><pre> 89</pre></span><pre>        </pre></div>
+<div class="cov"><span class="num"><pre> 90</pre></span><pre>    def process_IN_MODIFY(self,event):</pre></div>
+<div class="nocov"><span class="num"><pre> 91</pre></span><pre>        if self.debug:</pre></div>
+<div class="nocov"><span class="num"><pre> 92</pre></span><pre>            print &quot;Modifying:&quot;, event.pathname</pre></div>
+<div class="nocov"><span class="num"><pre> 93</pre></span><pre>        self.action(event.pathname)</pre></div>
+<div class="skip"><span class="num"><pre> 94</pre></span><pre>        </pre></div>
+<div class="cov"><span class="num"><pre> 95</pre></span><pre>    def process_IN_CLOSE_WRITE(self,event):</pre></div>
+<div class="nocov"><span class="num"><pre> 96</pre></span><pre>        if self.debug:</pre></div>
+<div class="nocov"><span class="num"><pre> 97</pre></span><pre>            print &quot;Closing writable file:&quot;, event.pathname</pre></div>
+<div class="nocov"><span class="num"><pre> 98</pre></span><pre>        self.action(event.pathname)</pre></div>
+<div class="skip"><span class="num"><pre> 99</pre></span><pre>        </pre></div>
+<div class="cov"><span class="num"><pre>100</pre></span><pre>    def process_IN_CLOSE_NOWRITE(self,event):</pre></div>
+<div class="nocov"><span class="num"><pre>101</pre></span><pre>        if self.debug:</pre></div>
+<div class="nocov"><span class="num"><pre>102</pre></span><pre>            print &quot;Closing read-only file:&quot;, event.pathname</pre></div>
+<div class="nocov"><span class="num"><pre>103</pre></span><pre>        self.action(event.pathname)</pre></div>
+</div>
+</body>
+</html>
