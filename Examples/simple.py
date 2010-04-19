@@ -35,3 +35,6 @@ print "++> Plot rate: %s plots per second."%(100./(time.time()-t0))
 #    pserver2.lines([d.tolist(),d2.tolist()],[],['data','data2'],'Two Histograms - %s'%n,'lines',1)
 # print "++> Plot rate: %s plots per second."%(100./(time.time()-t0))
 #===============================================================================
+
+# wait for the queue to empty
+pserver2.flush_queue()

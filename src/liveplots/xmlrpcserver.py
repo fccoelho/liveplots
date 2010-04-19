@@ -1,27 +1,62 @@
 __author__="fccoelho@gmail.com"
 __date__ ="$26/02/2009 10:44:29$"
 __docformat__ = "restructuredtext en"
+
 import Gnuplot
 import numpy
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 #from twisted.web import xmlrpc, server
 #from twisted.internet import reactor
 from multiprocessing import Process
+from threading import Thread, Lock
+from Queue import Queue
+import time
 
 Gnuplot.GnuplotOpts.prefer_inline_data = 1
 Gnuplot.GnuplotOpts.prefer_fifo_data = 0
 
 __ports_used = []
 
+Q = Queue()
+def worker():
+    while True:
+        item = Q.get()
+        item[0](*item[1])
+        Q.task_done()
+        
+#~ class Enqueue(object):
+    #~ """Decorator that places the call on a queue"""
+    #~ #TODO: Fix. Decorator not working
+    #~ def __init__(self, func):
+        #~ self.func = func
+        #~ self.__name__ = func.__name__
+    #~ def __call__(self,*args,**kw):
+        #~ self.func(*(self,)+args)
+        #~ Q.put((self.func,args))
+    #~ def __repr__(self):
+        #~ return self.func.__doc__
+
+def enqueue(f):
+    """Decorator that places the call on a queue"""
+    def queued(self,*args,**kw):
+        Q.put((f,(self,)+args))
+    queued.__doc__ = f.__doc__
+    queued.__name__ = f.__name__
+    return queued
+    
 class RTplot():
     '''
     Real time plotting class based on Gnuplot
     '''
-    allowNone = True
     def __init__(self, persist=0,debug=0,**kwargs):
         self.gp = Gnuplot.Gnuplot(persist = persist, debug=debug)
         self.plots = []
+        self.Queue = Q
+        t= Thread(target=worker,args=())
+        t.setDaemon(True)
+        t.start()
 
+    
     def clearFig(self):
         '''
         Clears the figure.
@@ -32,6 +67,11 @@ class RTplot():
     def close_plot(self):
         self.gp.close()
 
+    def flush_queue(self):
+        self.Queue.join()
+        return 0
+    
+    @enqueue
     def scatter(self,x,y,labels=[],title='',style='points', jitter = True):
         """
         Makes scatter plots from numpy arrays.
@@ -74,7 +114,8 @@ class RTplot():
             #print data
             self.plots.append(Gnuplot.PlotItems.Data(x*jt,y*jt,title=labels[0],with_=style))
             self.gp.plot(*tuple(self.plots))
-        
+    
+    @enqueue
     def lines(self, data, x=[], labels=[],title='',style='lines', multiplot=0):
         '''
         Create a single/multiple line plot from a numpy array or record array.
@@ -128,10 +169,11 @@ class RTplot():
         self.plots = []
         return 0
 
-
         
-
-    def histogram(self,data,labels=[],title='',multiplot=0):
+    #~ def histogram(self,data,labels=[],title='',multiplot=0):
+        #~ self.Queue.put((self._histogram,(data,labels,title,multiplot)))
+    @enqueue  
+    def histogram(self,data,labels=[],title='',multiplot=0,**kwargs):
         '''
         Create a single/multiple Histogram plot from a numpy array or record array.
         
