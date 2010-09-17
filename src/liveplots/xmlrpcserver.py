@@ -7,7 +7,7 @@ import numpy
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 #from twisted.web import xmlrpc, server
 #from twisted.internet import reactor
-from multiprocessing import Process
+#from multiprocessing import Process
 from threading import Thread, Lock
 from Queue import Queue
 import time
@@ -296,13 +296,13 @@ def rpc_plot(port=0, persist=0, hold=0):
             server = AltXMLRPCServer(("localhost", port),logRequests=False, allow_none=True)
             server.register_introspection_functions()
             server.register_function(server.shutdown)
-            server.register_signal(signal.SIGHUP)
-            server.register_signal(signal.SIGINT)
-            p = Process(target=_start_server, args=(server, persist, hold))
+            #server.register_signal(signal.SIGHUP)
+            #server.register_signal(signal.SIGINT)
+            T = Thread(target=_start_server, args=(server, persist, hold))
            
             #p = Process(target=_start_twisted_server, args=(port, persist))
-            p.daemon = True
-            p.start()
+            T.daemon = True
+            T.start()
             break
         except:         
             port += 1

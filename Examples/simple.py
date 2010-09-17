@@ -29,7 +29,7 @@ t0 = time.time()
 for n in range(100):
     d = random.normal(random.randint(0, high=10),1,size=100)
     d2 = random.normal(random.randint(0, high=10),1,size=100)
-    pserver2.histogram([d.tolist(),d2.tolist()],['data','data2'],'Two Histograms - %s'%n,1)
+    pserver2.histogram([d.tolist(),d2.tolist()],['data','data2'],'Two Histograms %s'%n,1)
 print "++> Plot rate: %s plots per second."%(100./(time.time()-t0)) 
 
 #succession of 100 multiplot lines
