@@ -296,6 +296,8 @@ def rpc_plot(port=0, persist=0, hold=0):
             server = AltXMLRPCServer(("localhost", port),logRequests=False, allow_none=True)
             server.register_introspection_functions()
             server.register_function(server.shutdown)
+            server.register_signal(signal.SIGHUP)
+            server.register_signal(signal.SIGINT)
             p = Process(target=_start_server, args=(server, persist, hold))
            
             #p = Process(target=_start_twisted_server, args=(port, persist))
