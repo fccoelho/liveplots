@@ -12,8 +12,8 @@ from setuptools import setup, find_packages
 
 
 setup(name='liveplots', 
-        version  = '0.3', 
-        author = 'Flavio Codeco Coelho', 
+        version  = '0.7', 
+        author = 'Flávio Codeço Coelho', 
         author_email = 'fccoelho@gmail.com', 
         url = 'http://code.google.com/p/liveplots/',
         description = 'Real-time live plot server',

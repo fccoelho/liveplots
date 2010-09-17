@@ -11,6 +11,7 @@ from multiprocessing import Process
 from threading import Thread, Lock
 from Queue import Queue
 import time
+import signal
 
 Gnuplot.GnuplotOpts.prefer_inline_data = 1
 Gnuplot.GnuplotOpts.prefer_fifo_data = 0
@@ -24,17 +25,6 @@ def worker():
         item[0](*item[1])
         Q.task_done()
         
-#~ class Enqueue(object):
-    #~ """Decorator that places the call on a queue"""
-    #~ #TODO: Fix. Decorator not working
-    #~ def __init__(self, func):
-        #~ self.func = func
-        #~ self.__name__ = func.__name__
-    #~ def __call__(self,*args,**kw):
-        #~ self.func(*(self,)+args)
-        #~ Q.put((self.func,args))
-    #~ def __repr__(self):
-        #~ return self.func.__doc__
 
 def enqueue(f):
     """Decorator that places the call on a queue"""
@@ -52,10 +42,18 @@ class RTplot():
         self.gp = Gnuplot.Gnuplot(persist = persist, debug=debug)
         self.plots = []
         self.Queue = Q
+        self.persist = persist
+        self.hold = 0 if 'hold' not in kwargs else kwargs['hold']
         t= Thread(target=worker,args=())
         t.setDaemon(True)
         t.start()
-
+    
+    def set_hold(self,on):
+        '''
+        Sets hold state of the plot.
+        takes 0 or 1 as argument
+        '''
+        self.hold = on
     
     def clearFig(self):
         '''
@@ -65,14 +63,17 @@ class RTplot():
         return 0 
         #self.gp.reset()
     def close_plot(self):
-        self.gp.close()
+        self.flush_queue()
+        if self.persist:
+            self.gp.close()
+        return 0 
 
     def flush_queue(self):
         self.Queue.join()
         return 0
     
     @enqueue
-    def scatter(self,x,y,labels=[],title='',style='points', jitter = True):
+    def scatter(self,x,y,labels=[],title='',style='points', jitter=True, multiplot=0):
         """
         Makes scatter plots from numpy arrays.
         if x and are multidimensional(lists of lists), multiple scatter plots will be generated, pairing rows.
@@ -80,7 +81,19 @@ class RTplot():
         :Parameters:
             -`x`: list of numbers or list of lists
             -`y`: list of numbers or list of lists
+            -`labels`: list of strings (variable names)
+            -`title`: Title of the plot
         """
+        assert len(x)==len(y)
+        if multiplot:
+            sq = numpy.sqrt(len(x))
+            ad = 1 if sq%1 >0.5 else 0
+            r= numpy.floor(sq);c=numpy.ceil(sq)+ad
+            if len(x) == 3:
+                r=3;c=1
+            self.gp('set multiplot layout %s,%s title "%s"'%(r, c, title))
+        else:
+            self.gp('set title "%s"'%title)
         if jitter:
             jt = numpy.random.normal(1, 1e-4,1)[0]
         else:
@@ -107,13 +120,24 @@ class RTplot():
             for n in range(x.shape[0]):
                 self.plots.append(Gnuplot.PlotItems.Data(x[n]*jt,y[n]*jt,title=labels[i],with_=style))
                 i += 1
-            self.gp.plot(*tuple(self.plots))
+            if multiplot:
+                [self.gp.plot(pl) for pl in self.plots]
+                self.gp('unset multiplot')
+            else:
+                self.gp.plot(*tuple(self.plots))
         elif len(x.shape) >2:
                 pass
         else:
             #print data
             self.plots.append(Gnuplot.PlotItems.Data(x*jt,y*jt,title=labels[0],with_=style))
-            self.gp.plot(*tuple(self.plots))
+            if multiplot:
+                [self.gp.plot(pl) for pl in self.plots]
+                self.gp('unset multiplot')
+            else:
+                self.gp.plot(*tuple(self.plots))
+        if not self.hold:
+            self.plots = []
+        return 0
     
     @enqueue
     def lines(self, data, x=[], labels=[],title='',style='lines', multiplot=0):
@@ -130,7 +154,8 @@ class RTplot():
         #self.gp('set style %s 1'%style)
         if multiplot:
             sq = numpy.sqrt(len(data))
-            r= numpy.floor(sq);c=numpy.ceil(sq)
+            ad = 1 if sq%1 >0.5 else 0
+            r= numpy.floor(sq);c=numpy.ceil(sq)+ad
             if len(data) == 3:
                 r=3;c=1
             self.gp('set multiplot layout %s,%s title "%s"'%(r, c, title))
@@ -165,8 +190,8 @@ class RTplot():
             self.gp.plot(*tuple(self.plots))
             if not multiplot:
                 self.gp('unset multiplot')
-                
-        self.plots = []
+        if not self.hold:
+            self.plots = []
         return 0
 
         
@@ -184,7 +209,8 @@ class RTplot():
         '''
         if multiplot:
             sq = numpy.sqrt(len(data))
-            r= numpy.floor(sq);c=numpy.ceil(sq)
+            ad = 1 if sq%1 >0.5 else 0
+            r= numpy.floor(sq);c=numpy.ceil(sq)+ad
             if len(data) == 3:
                 r=3;c=1
             self.gp('set multiplot layout %s,%s title "%s"'%(r, c, title))
@@ -196,7 +222,7 @@ class RTplot():
         data = numpy.array(data)
         if not labels:
             labels = ['Var_%s'%i for i in range(data.shape[0])]
-        if len(data.shape) > 1 and len(data.shape) <= 2:
+        if len(data.shape) == 2:
             for n,row in enumerate(data):
                 m,bins = numpy.histogram(row,normed=True,bins=50)
                 d = zip(bins[:-1],m)
@@ -219,20 +245,43 @@ class RTplot():
             if multiplot:
                 self.gp('unset multiplot')
 
-                
-        self.plots = []
+        if not self.hold:
+            self.plots = []
         return 0
 
 
+class AltXMLRPCServer(SimpleXMLRPCServer):
+    '''
+    Subclass of SimpleXMLRPCServer which catches signals at the consoles and terminate the server.
+    thanks http://code.activestate.com/recipes/114579-remotely-exit-a-xmlrpc-server-cleanly/
+    '''
+
+    finished=False
+
+    def register_signal(self, signum):
+        signal.signal(signum, self.signal_handler)
+
+    def signal_handler(self, signum, frame):
+        print "Caught signal", signum
+        self.shutdown()
+
+    def shutdown(self):
+        self.finished=True
+        return 1
+
+    def serve_forever(self):
+        while not self.finished: 
+            self.handle_request()
+
         
-def _start_server(server, persist):
-    server.register_instance(RTplot(persist=persist))
+def _start_server(server, persist,hold):
+    server.register_instance(RTplot(persist=persist, hold=hold))
     server.register_introspection_functions()
     server.serve_forever()
 
 
 
-def rpc_plot(port=0, persist=0):
+def rpc_plot(port=0, persist=0, hold=0):
     """
     XML RPC plot server factory function
     returns port if server successfully started or 0
@@ -244,9 +293,10 @@ def rpc_plot(port=0, persist=0):
             port += 1
             continue
         try:
-            server = SimpleXMLRPCServer(("localhost", port),logRequests=False, allow_none=True)
+            server = AltXMLRPCServer(("localhost", port),logRequests=False, allow_none=True)
             server.register_introspection_functions()
-            p = Process(target=_start_server, args=(server, persist))
+            server.register_function(server.shutdown)
+            p = Process(target=_start_server, args=(server, persist, hold))
            
             #p = Process(target=_start_twisted_server, args=(port, persist))
             p.daemon = True

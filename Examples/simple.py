@@ -18,6 +18,12 @@ pserver2 = xmlrpclib.ServerProxy('http://localhost:%s'%port2, allow_none=True)
 # pserver.histogram([data.tolist(),data2.tolist()],['data','data2'],'Two Histograms')
 # pserver2.lines([data.tolist(),data2.tolist()],[],['data','data2'],'Two plots')
 
+# multiplot scatter
+data = [random.normal(random.randint(0, high=10),1,size=100).tolist() for i in range(7)]
+data2 = [random.normal(random.randint(0, high=10),1,size=100).tolist() for i in range(7)]
+pserver.scatter(data,data2,[],'','points',1,1)
+pserver.shutdown()
+
 #succession of 100 multiplot histograms
 t0 = time.time()
 for n in range(100):
@@ -38,3 +44,4 @@ print "++> Plot rate: %s plots per second."%(100./(time.time()-t0))
 
 # wait for the queue to empty
 pserver2.flush_queue()
+pserver2.shutdown()
