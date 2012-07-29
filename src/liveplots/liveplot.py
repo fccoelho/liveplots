@@ -17,13 +17,9 @@ import argparse
 
 
 port = xmlrpc.rpc_plot(persist=0)
-pserver = xmlrpclib.ServerProxy('http://localhost:%s'%port, allow_none=True)
+pserver = xmlrpclib.ServerProxy('http://0.0.0.0:%s'%port, allow_none=True)
 
 
-def action(fpath):
-    print "action triggered", fpath
-    np.load(fpath)
-    pserver.lines(data.tolist(),[],['data'],'')
 
 def main(args):
     pass

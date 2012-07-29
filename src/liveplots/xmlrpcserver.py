@@ -5,9 +5,6 @@ __docformat__ = "restructuredtext en"
 import Gnuplot
 import numpy
 from SimpleXMLRPCServer import SimpleXMLRPCServer
-#from twisted.web import xmlrpc, server
-#from twisted.internet import reactor
-#from multiprocessing import Process
 from threading import Thread, Lock
 from Queue import Queue
 import time
