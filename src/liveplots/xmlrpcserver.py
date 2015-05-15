@@ -2,16 +2,17 @@ __author__="fccoelho@gmail.com"
 __date__ ="$26/02/2009 10:44:29$"
 __docformat__ = "restructuredtext en"
 
-import Gnuplot
+#import Gnuplot
 import numpy
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 from threading import Thread, Lock
 from Queue import Queue
 import time
+from subprocess import PIPE, Popen
 import signal
 
-Gnuplot.GnuplotOpts.prefer_inline_data = 1
-Gnuplot.GnuplotOpts.prefer_fifo_data = 0
+#Gnuplot.GnuplotOpts.prefer_inline_data = 1
+#Gnuplot.GnuplotOpts.prefer_fifo_data = 0
 
 __ports_used = []
 
@@ -36,6 +37,7 @@ class RTplot():
     Real time plotting class based on Gnuplot
     '''
     def __init__(self, persist=0,debug=0,**kwargs):
+        self.gp = Popen(['gnuplot', '-persist'], stdin=PIPE, stdout=PIPE, stderr=PIPE)
         self.gp = Gnuplot.Gnuplot(persist = persist, debug=debug)
         self.plots = []
         self.Queue = Q
