@@ -91,6 +91,7 @@ class RTplot():
             -`labels`: list of strings (variable names)
             -`title`: Title of the plot
         """
+        #self.gp = Popen(['gnuplot', '-persist'], stdin=PIPE, stdout=PIPE, stderr=PIPE)
         assert len(x) == len(y)
         if multiplot:
             sq = numpy.sqrt(len(x))
@@ -100,7 +101,7 @@ class RTplot():
             if len(x) == 3:
                 r = 3;
                 c = 1
-            self.gp.stdin.write(('set multiplot layout {},{} title "{}"'.format(r, c, title)).encode())
+            self.gp.stdin.write(('set multiplot layout {},{} title "{}"\n'.format(r, c, title)).encode())
         else:
             self.gp.stdin.write(('set title "%s"' % title).encode())
         if jitter:
@@ -165,10 +166,11 @@ class RTplot():
             if len(data) == 3:
                 r = 3;
                 c = 1
-            self.gp.stdin.write(('set multiplot layout {},{} title "{}"'.format(r, c, title)).encode())
+            self.gp.stdin.write(('set multiplot layout {},{} title "{}"\n'.format(r, c, title)).encode())
         else:
-            self.gp.stdin.write(('set title "{}"'.format(title)).encode())
-        self.gp.stdin.write(b"set style lines")
+            self.gp.stdin.write(('set title "{}"\n'.format(title)).encode())
+        self.gp.stdin.write(b"set style lines\n")
+        self.gp.stdin.flush()
         assert isinstance(data, list)
         data = numpy.array(data)
 
@@ -182,18 +184,19 @@ class RTplot():
 
                 i += 1
             if multiplot:
-                self.gp.stdin.write(b'unset multiplot')
+                self.gp.stdin.write(b'unset multiplot\n')
 
         elif len(data.shape) > 2:
             pass
         else:
             #            print data
-            if x == []:
+            if x == [] or x is None:
                 x = numpy.arange(len(data))
+
             d = zip(x, data)
             self._plot_d(d)
             if not multiplot:
-                self.gp.stdin.write(b'unset multiplot')
+                self.gp.stdin.write(b'unset multiplot\n')
         if not self.hold:
             self.plots = []
         return 0
@@ -220,13 +223,13 @@ class RTplot():
             if len(data) == 3:
                 r = 3;
                 c = 1
-            self.gp.stdin.write(('set multiplot layout %s,%s title "%s"' % (r, c, title)).encode())
+            self.gp.stdin.write(('set multiplot layout %s,%s title "%s"\n' % (r, c, title)).encode())
         else:
-            self.gp.stdin.write(('set title "%s"' % title).encode())
-        self.gp.stdin.write(b'''set style data histogram
-        set style fill solid border -1
+            self.gp.stdin.write(('set title "%s"\n' % title).encode())
+        self.gp.stdin.write(b'''set style data histograms\n
+        set style fill solid border -1\n
         ''')
-
+        self.gp.stdin.flush()
         assert isinstance(data, list)
         data = numpy.array(data)
         if not labels:
@@ -235,10 +238,10 @@ class RTplot():
             for n, row in enumerate(data):
                 m, bins = numpy.histogram(row, normed=True, bins=50)
                 d = list(zip(bins[:-1], m))
-                self._plot_d(d)
+                self._plot_d(d, label=labels[n], style='boxes')
 
             if multiplot:
-                self.gp.stdin.write(b'unset multiplot')
+                self.gp.stdin.write(b'unset multiplot\n')
             else:
                 pass
 
@@ -249,17 +252,17 @@ class RTplot():
             d = list(zip(bins[:-1], m))
             self._plot_d(d)
             if multiplot:
-                self.gp.stdin.write(b'unset multiplot')
+                self.gp.stdin.write(b'unset multiplot\n')
 
         if not self.hold:
             self.plots = []
         return 0
 
-    def _plot_d(self, d):
+    def _plot_d(self, d, label="", style='points'):
         """
         Actually plots the data
         """
-        self.gp.stdin.write(b"plot '-' ")
+        self.gp.stdin.write(("plot '-' title '{}' with {}\n".format(label, style)).encode())
         self.gp.stdin.write(("\n".join(("%f "*len(l))%l for l in d)).encode())
         self.gp.stdin.write(b"\ne\n")
         self.gp.stdin.flush()
