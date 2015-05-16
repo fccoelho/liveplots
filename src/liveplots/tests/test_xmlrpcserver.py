@@ -1,14 +1,15 @@
+from __future__ import absolute_import
 from nose import SkipTest
 from nose.tools import assert_equal
 from liveplots.xmlrpcserver import rpc_plot
 from liveplots import xmlrpcserver
-import xmlrpclib
+import six.moves.xmlrpc_client
 from numpy import random
 
 class TestRTplot:
     def setUp(self):
         port = rpc_plot(persist=0)
-        self.r_tplot = xmlrpclib.ServerProxy('http://localhost:%s'%port)
+        self.r_tplot = six.moves.xmlrpc_client.ServerProxy('http://localhost:%s'%port)
         
     def tearDown(self):
         pass

@@ -1,5 +1,6 @@
 *.py[co]
-
+.idea
+.idea/*
 # Packages
 *.egg
 *.egg-info

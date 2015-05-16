@@ -19,7 +19,7 @@ setup(name='liveplots',
         description = 'Real-time live plot server',
         zip_safe = True,
         packages = find_packages(),
-        install_requires = ["numpy >= 1.2","pyinotify >= 0.8.9"], 
+        install_requires = ["numpy >= 1.2", "pyinotify >= 0.8.9"],
         test_suite = 'nose.collector', 
         license = 'GPL',  
       )
