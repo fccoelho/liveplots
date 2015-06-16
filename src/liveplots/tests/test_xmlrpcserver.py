@@ -10,7 +10,7 @@ from numpy import random
 class TestRTplot:
     def setUp(self):
         port = rpc_plot(persist=0)
-        self.r_tplot = six.moves.xmlrpc_client.ServerProxy('http://localhost:%s' % port)
+        self.r_tplot = six.moves.xmlrpc_client.ServerProxy('http://localhost:%s'%port)
 
     def tearDown(self):
         pass
