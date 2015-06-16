@@ -4,6 +4,7 @@ Created on 22/03/2010
 
 @author: fccoelho
 '''
+from __future__ import absolute_import
 
 #from ez_setup import use_setuptools
 #use_setuptools()

@@ -12,6 +12,7 @@ var
 sdist
 develop-eggs
 .installed.cfg
+.idea*
 
 # Installer logs
 pip-log.txt
@@ -25,3 +26,6 @@ pip-log.txt
 
 #Mr Developer
 .mr.developer.cfg
+.directory
+.project
+.pydevproject

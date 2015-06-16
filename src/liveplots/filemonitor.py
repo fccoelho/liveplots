@@ -3,6 +3,8 @@ Created on 15/04/2010
 
 @author: fccoelho
 '''
+from __future__ import absolute_import
+from __future__ import print_function
 import sys
 try:
     import pyinotify
@@ -72,35 +74,35 @@ class _HandleEvents(pyinotify.ProcessEvent):
         
     def process_IN_CREATE(self, event):
         if self.debug:
-            print "Creating:", event.pathname
+            print("Creating:", event.pathname)
         self.action(event.pathname)
 
     def process_IN_DELETE(self, event):
         if self.debug:
-            print "Removing:", event.pathname
+            print("Removing:", event.pathname)
         self.action(event.pathname)
         
     def process_IN_ACCESS(self,event):
         if self.debug:
-            print "Accessing:", event.pathname
+            print("Accessing:", event.pathname)
         self.action(event.pathname)
         
     def process_IN_ATTRIB(self,event):
         if self.debug:
-            print "Changing metadata:", event.pathname
+            print("Changing metadata:", event.pathname)
         self.action(event.pathname)
         
     def process_IN_MODIFY(self,event):
         if self.debug:
-            print "Modifying:", event.pathname
+            print("Modifying:", event.pathname)
         self.action(event.pathname)
         
     def process_IN_CLOSE_WRITE(self,event):
         if self.debug:
-            print "Closing writable file:", event.pathname
+            print("Closing writable file:", event.pathname)
         self.action(event.pathname)
         
     def process_IN_CLOSE_NOWRITE(self,event):
         if self.debug:
-            print "Closing read-only file:", event.pathname
+            print("Closing read-only file:", event.pathname)
         self.action(event.pathname)

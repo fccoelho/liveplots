@@ -1,12 +1,16 @@
+from __future__ import absolute_import
+from __future__ import print_function
+from six.moves import range
+from six.moves import zip
 __author__="fccoelho@gmail.com"
 __date__ ="$26/02/2009 10:44:29$"
 __docformat__ = "restructuredtext en"
 
 import Gnuplot
 import numpy
-from SimpleXMLRPCServer import SimpleXMLRPCServer
+from six.moves.xmlrpc_server import SimpleXMLRPCServer
 from threading import Thread, Lock
-from Queue import Queue
+from six.moves.queue import Queue
 import time
 import signal
 
@@ -222,7 +226,7 @@ class RTplot():
         if len(data.shape) == 2:
             for n,row in enumerate(data):
                 m,bins = numpy.histogram(row,normed=True,bins=50)
-                d = zip(bins[:-1],m)
+                d = list(zip(bins[:-1],m))
                 self.plots.append(Gnuplot.PlotItems.Data(d,title=labels[n]))
             
             if multiplot:
@@ -236,7 +240,7 @@ class RTplot():
             pass
         elif len(data.shape) == 1:
             m,bins = numpy.histogram(data,normed=True,bins=50)
-            d = zip(bins[:-1],m)
+            d = list(zip(bins[:-1],m))
             self.plots.append(Gnuplot.PlotItems.Data(d,title=labels[0]))
             self.gp.plot(*tuple(self.plots))
             if multiplot:
@@ -259,7 +263,7 @@ class AltXMLRPCServer(SimpleXMLRPCServer):
         signal.signal(signum, self.signal_handler)
 
     def signal_handler(self, signum, frame):
-        print "Caught signal", signum
+        print("Caught signal", signum)
         self.shutdown()
 
     def shutdown(self):

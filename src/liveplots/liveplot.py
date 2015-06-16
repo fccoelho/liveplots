@@ -5,19 +5,20 @@ This is an executable script which sets up a live plot monitoring a given file
 license: GPL v3 or later
 7/28/12
 """
+from __future__ import absolute_import
 
 __docformat__ = "restructuredtext en"
 
 import numpy as np
-from filemonitor import Monitor
-import xmlrpcserver as xmlrpc
-import xmlrpclib
+from .filemonitor import Monitor
+from . import xmlrpcserver as xmlrpc
+import six.moves.xmlrpc_client
 import time
 import argparse
 
 
 port = xmlrpc.rpc_plot(persist=0)
-pserver = xmlrpclib.ServerProxy('http://0.0.0.0:%s'%port, allow_none=True)
+pserver = six.moves.xmlrpc_client.ServerProxy('http://0.0.0.0:%s'%port, allow_none=True)
 
 
 
