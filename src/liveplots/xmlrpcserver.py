@@ -71,8 +71,7 @@ class RTplot():
 
     def close_plot(self):
         self.flush_queue()
-        if self.persist:
-            self.gp.close()
+
         return 0
 
     def flush_queue(self):
@@ -91,7 +90,7 @@ class RTplot():
             -`labels`: list of strings (variable names)
             -`title`: Title of the plot
         """
-        #self.gp = Popen(['gnuplot', '-persist'], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+
         assert len(x) == len(y)
         if multiplot:
             sq = numpy.sqrt(len(x))
@@ -103,7 +102,7 @@ class RTplot():
                 c = 1
             self.gp.stdin.write(('set multiplot layout {},{} title "{}"\n'.format(r, c, title)).encode())
         else:
-            self.gp.stdin.write(('set title "%s"' % title).encode())
+            self.gp.stdin.write(('set title "{}"\n'.format(title)).encode())
         if jitter:
             jt = numpy.random.normal(1, 1e-4, 1)[0]
         else:
@@ -121,26 +120,29 @@ class RTplot():
                 if len(labels) != x.shape[0]:
                     raise ValueError("labels list must have exactly %s items, but has %s." % (x.shape[0], len(labels)))
 
-        self.gp.stdin.write(('set title "%s"' % title).encode())
+        self.gp.stdin.write(('set title "{}"\n'.format(title)).encode())
         if not labels:
             labels = ['s%s' % i for i in range(x.shape[0])]
         if len(x.shape) > 1 and len(x.shape) <= 2:
             i = 0
+            self.gp.stdin.write(("plot {} with {}\n".format(','.join(["'-' title '{}'".format(l) for l in labels]), style)).encode())
             for n in range(x.shape[0]):
                 d = zip(x[n]*jt, y[n]*jt)
+                l = labels[n]
                 self._plot_d(d)
                 i += 1
             if multiplot:
-                self.gp.stdin.write(b'unset multiplot')
+                self.gp.stdin.write(b'unset multiplot\n')
 
         elif len(x.shape) > 2:
             pass
         else:
             # print data
             d = zip(x*jt, y*jt)
+            self.gp.stdin.write(("plot '-' title '{}' with {}\n".format(labels[0], style)).encode())
             self._plot_d(d)
             if multiplot:
-                self.gp.stdin.write(b'unset multiplot')
+                self.gp.stdin.write(b'unset multiplot\n')
         if not self.hold:
             self.plots = []
         return 0
@@ -173,14 +175,16 @@ class RTplot():
         self.gp.stdin.flush()
         assert isinstance(data, list)
         data = numpy.array(data)
-
+        if labels == []:
+            labels = ['S_{}'.format(i) for i in range(len(data))]
         if len(data.shape) > 1 and len(data.shape) <= 2:
             i = 0
-            for row in data:
+            self.gp.stdin.write(("plot {} with {}\n".format(','.join([" '-' title '{}'".format(l) for l in labels]), style)).encode())
+            for row, l in zip(data, labels):
                 if x == []:
                     x = numpy.arange(len(row))
                 d = zip(x, row)
-                self._plot_d(d)
+                self._plot_d(d, label=l, style=style)
 
                 i += 1
             if multiplot:
@@ -194,7 +198,8 @@ class RTplot():
                 x = numpy.arange(len(data))
 
             d = zip(x, data)
-            self._plot_d(d)
+            self.gp.stdin.write(("plot '-' with {}\n".format(style)).encode())
+            self._plot_d(d, style=style)
             if not multiplot:
                 self.gp.stdin.write(b'unset multiplot\n')
         if not self.hold:
@@ -233,12 +238,13 @@ class RTplot():
         assert isinstance(data, list)
         data = numpy.array(data)
         if not labels:
-            labels = ['Var_%s' % i for i in range(data.shape[0])]
+            labels = ['Var_{}'.format(i) for i in range(data.shape[0])]
         if len(data.shape) == 2:
+            self.gp.stdin.write(("plot {}\n".format(','.join([" '-' title '{}' with boxes".format(l) for l in labels]))).encode())
             for n, row in enumerate(data):
                 m, bins = numpy.histogram(row, normed=True, bins=50)
                 d = list(zip(bins[:-1], m))
-                self._plot_d(d, label=labels[n], style='boxes')
+                self._plot_d(d)
 
             if multiplot:
                 self.gp.stdin.write(b'unset multiplot\n')
@@ -250,6 +256,7 @@ class RTplot():
         elif len(data.shape) == 1:
             m, bins = numpy.histogram(data, normed=True, bins=50)
             d = list(zip(bins[:-1], m))
+            self.gp.stdin.write(("plot '-' title '{}' with boxes\n".format(labels[0])).encode())
             self._plot_d(d)
             if multiplot:
                 self.gp.stdin.write(b'unset multiplot\n')
@@ -258,11 +265,11 @@ class RTplot():
             self.plots = []
         return 0
 
-    def _plot_d(self, d, label="", style='points'):
+    def _plot_d(self, d, label="data", style='lines'):
         """
         Actually plots the data
         """
-        self.gp.stdin.write(("plot '-' title '{}' with {}\n".format(label, style)).encode())
+        # self.gp.stdin.write(("plot '-' title '{}' with {}\n".format(label, style)).encode())
         self.gp.stdin.write(("\n".join(("%f "*len(l))%l for l in d)).encode())
         self.gp.stdin.write(b"\ne\n")
         self.gp.stdin.flush()
@@ -310,8 +317,8 @@ def rpc_plot(port=0, persist=0, hold=0):
             continue
         try:
             server = AltXMLRPCServer(("localhost", port), logRequests=False, allow_none=True)
-            server.register_introspection_functions()
-            server.register_function(server.shutdown)
+            # server.register_introspection_functions()
+            # server.register_function(server.shutdown)
             # server.register_signal(signal.SIGHUP)
             # server.register_signal(signal.SIGINT)
             T = Thread(target=_start_server, args=(server, persist, hold))

@@ -2,7 +2,6 @@ from __future__ import absolute_import
 from nose import SkipTest
 from nose.tools import assert_equal
 from liveplots.xmlrpcserver import rpc_plot
-from liveplots import xmlrpcserver
 import six.moves.xmlrpc_client
 from numpy import random
 
@@ -15,7 +14,6 @@ class TestRTplot:
     def tearDown(self):
         pass
         self.r_tplot.flush_queue()
-        self.r_tplot.shutdown()
 
     def test___init__(self):
         port = rpc_plot(persist=0)
@@ -32,9 +30,15 @@ class TestRTplot:
         self.r_tplot.histogram(data, ['test'], 'test histogram')
         self.r_tplot.close_plot()
 
-    def test_lines(self):
+    def test_multiple_histogram(self):
         data = random.normal(0, 1, 1000).tolist()
-        self.r_tplot.lines(data, [], ['test'], 'test title')
+        data2 = random.normal(3, 1, 1000).tolist()
+        self.r_tplot.histogram([data, data2], ['test', 'test2'], 'Multiple histograms')
+        self.r_tplot.close_plot()
+
+    def test_lines(self):
+        data = [random.normal(0, 1, 1000).tolist() for i in range(4)]
+        self.r_tplot.lines(data, [], ['a', 'b', 'c', 'd'], 'test LInes', 'lines', 0)
         self.r_tplot.close_plot()
 
     def test_scatter(self):
