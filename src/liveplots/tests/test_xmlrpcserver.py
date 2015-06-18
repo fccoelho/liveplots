@@ -36,9 +36,20 @@ class TestRTplot:
         self.r_tplot.histogram([data, data2], ['test', 'test2'], 'Multiple histograms')
         self.r_tplot.close_plot()
 
+    def test_multiple_histogram_multiplot(self):
+        data = random.normal(0, 1, 1000).tolist()
+        data2 = random.normal(3, 1, 1000).tolist()
+        self.r_tplot.histogram([data, data2], ['test', 'test2'], 'Multiple histograms', 1)
+        self.r_tplot.close_plot()
+
     def test_lines(self):
         data = [random.normal(0, 1, 1000).tolist() for i in range(4)]
-        self.r_tplot.lines(data, [], ['a', 'b', 'c', 'd'], 'test LInes', 'lines', 0)
+        self.r_tplot.lines(data, [], ['a', 'b', 'c', 'd'], 'Test Lines', 'lines', 0)
+        self.r_tplot.close_plot()
+
+    def test_lines_multiplot(self):
+        data = [random.normal(0, 1, 1000).tolist() for i in range(4)]
+        self.r_tplot.lines(data, [], ['a', 'b', 'c', 'd'], 'test LInes', 'lines', 1)
         self.r_tplot.close_plot()
 
     def test_scatter(self):
