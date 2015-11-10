@@ -322,6 +322,9 @@ def rpc_plot(port=0, persist=0, hold=0):
     """
     XML RPC plot server factory function
     returns port if server successfully started or 0
+    :param port: port in which to listen for ploting commands. If 0, the first available port above 10000 is chosen
+    :param persist: If the plot should be persistent
+    :param hold: hold the previous plot when plotting.
     """
     if port == 0:
         port = 10001
