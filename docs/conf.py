@@ -54,8 +54,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'LivePlots'
-copyright = '2015, Flavio Codeco Coelho'
-author = 'Flavio Codeco Coelho'
+copyright = '2015, Flávio Codeço Coelho'
+author = 'Flávio Codeço Coelho'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
