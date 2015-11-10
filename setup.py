@@ -9,7 +9,7 @@ from __future__ import absolute_import
 from setuptools import setup, find_packages
 
 setup(name='liveplots',
-      version='0.8.3',
+      version='0.8.4',
       author='Flávio Codeço Coelho',
       author_email='fccoelho@gmail.com',
       url='https://github.com/fccoelho/liveplots',

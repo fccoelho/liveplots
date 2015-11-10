@@ -1,8 +1,7 @@
 from __future__ import absolute_import
 from __future__ import print_function
 from numpy import random
-from liveplots import xmlrpcserver as xmlrpc
-import six.moves.xmlrpc_client
+from liveplots.xmlrpcserver import PlotServer
 import time
 from six.moves import range
 
@@ -10,11 +9,9 @@ data = random.normal(0, 1, 1000)
 data2 = random.normal(4, 1, 1000)
 
 # setting up a couple of servers
-port = xmlrpc.rpc_plot(persist=0)
-port2 = xmlrpc.rpc_plot(persist=1)  # Persistant plot
-print("==> port:", port2)
-pserver = six.moves.xmlrpc_client.ServerProxy('http://localhost:%s' % port, allow_none=True)
-pserver2 = six.moves.xmlrpc_client.ServerProxy('http://localhost:%s' % port2, allow_none=True)
+
+pserver = PlotServer(port=0, persist=1)
+pserver2 = PlotServer(port=0, persist=1)
 
 # plotting data. 
 # pserver.histogram([data.tolist(),data2.tolist()],['data','data2'],'Two Histograms')
@@ -24,7 +21,8 @@ pserver2 = six.moves.xmlrpc_client.ServerProxy('http://localhost:%s' % port2, al
 data = [random.normal(random.randint(0, high=10), 1, size=100).tolist() for i in range(7)]
 data2 = [random.normal(random.randint(0, high=10), 1, size=100).tolist() for i in range(7)]
 pserver.scatter(data, data2, [], '', 'points', 1, 1)
-pserver.shutdown()
+pserver.flush_queue()
+# pserver.shutdown()
 
 # succession of 500 multiplot histograms
 t0 = time.time()
@@ -46,4 +44,4 @@ print("++> Plot rate: %s plots per second." % (100. / (time.time() - t0)))
 
 # wait for the queue to empty
 pserver2.flush_queue()
-pserver2.shutdown()
+# pserver2.shutdown()

@@ -6,13 +6,13 @@ from __future__ import print_function
 
 import numpy as np
 from liveplots.filemonitor import Monitor
-from liveplots import xmlrpcserver as xmlrpc
+from liveplots.xmlrpcserver import PlotServer
 import six.moves.xmlrpc_client
 import time
 
 
-port = xmlrpc.rpc_plot(persist=0)
-pserver = six.moves.xmlrpc_client.ServerProxy('http://localhost:%s'%port, allow_none=True)
+
+pserver = PlotServer()
 
 
 def action(fpath):

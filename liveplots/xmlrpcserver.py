@@ -12,6 +12,7 @@ import numpy
 from six.moves.xmlrpc_server import SimpleXMLRPCServer
 from threading import Thread, Lock
 from six.moves.queue import Queue
+from six.moves.xmlrpc_client import ServerProxy
 import time
 from subprocess import PIPE, Popen
 import signal
@@ -349,6 +350,12 @@ def rpc_plot(port=0, persist=0, hold=0):
     port = port
     __ports_used.append(port)
     return port
+
+class PlotServer(ServerProxy):
+    def __init__(self, port=0, persist=1):
+        port = rpc_plot(port=port, persist=persist)
+        super(PlotServer, self).__init__("http://localhost:{}".format(port), allow_none=True)
+
 
 
 if __name__ == "__main__":
