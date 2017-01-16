@@ -20,7 +20,7 @@ pserver2 = PlotServer(port=0, persist=1)
 # multiplot scatter
 data = [random.normal(random.randint(0, high=10), 1, size=100).tolist() for i in range(7)]
 data2 = [random.normal(random.randint(0, high=10), 1, size=100).tolist() for i in range(7)]
-pserver.scatter(data, data2, [], '', 'points', 1, 1)
+pserver.scatter(data, data2, [], 'Multiplot', 'points', 0, 1)
 pserver.flush_queue()
 # pserver.shutdown()
 
