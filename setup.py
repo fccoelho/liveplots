@@ -15,7 +15,7 @@ with open(path.join(here, 'README.rst')) as f:
     long_description = f.read()
 
 setup(name='liveplots',
-      version='0.8.4',
+      version='0.8.5',
       author='Flávio Codeço Coelho',
       author_email='fccoelho@gmail.com',
       url='https://github.com/fccoelho/liveplots',
@@ -23,7 +23,7 @@ setup(name='liveplots',
       long_description=long_description,
       zip_safe=True,
       packages=find_packages(),
-      install_requires=["numpy >= 1.2", "pyinotify >= 0.8.9"],
+      install_requires=["numpy >= 1.2"],
       test_suite='nose.collector',
       license='GPL',
       )
