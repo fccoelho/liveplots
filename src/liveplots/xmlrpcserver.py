@@ -166,7 +166,13 @@ class RTplot():
             - `multiplot`: Whether to make multiple subplots
         '''
         assert isinstance(data, list)
-        data = numpy.array(data)
+        assert isinstance(data[0], list)
+        assert len(data[0]) > 0
+        try:
+            data = numpy.array(data, dtype=float)
+        except ValueError as e:
+            print(data)
+            raise e
         if labels == []:
             labels = ['S_{}'.format(i) for i in range(len(data))]
 
@@ -349,4 +355,11 @@ def rpc_plot(port=0, persist=0, hold=0):
 
 
 if __name__ == "__main__":
-    pass
+    import six.moves.xmlrpc_client
+    port = rpc_plot(persist=0)
+    r_tplot = six.moves.xmlrpc_client.ServerProxy('http://localhost:%s' % port)
+    data = [numpy.random.normal(0, 1, 1000).tolist() for i in range(4)]
+    r_tplot.lines(data, [], ['a', 'b', 'c', 'd'], 'Test Lines', 'lines', 0)
+    r_tplot.close_plot()
+    r_tplot.close_plot()
+
