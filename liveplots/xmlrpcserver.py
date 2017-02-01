@@ -12,6 +12,7 @@ import numpy
 from six.moves.xmlrpc_server import SimpleXMLRPCServer
 from threading import Thread, Lock
 from six.moves.queue import Queue
+from six.moves.xmlrpc_client import ServerProxy
 import time
 from subprocess import PIPE, Popen
 import signal
@@ -41,7 +42,8 @@ def enqueue(f):
 
 class RTplot():
     '''
-    Real time plotting class based on Gnuplot
+    Real time plotting class based on Gnuplot.
+    Maintains a FIFO queue of plotting calls which are consumed sequentially by a worker thread.
     '''
 
     def __init__(self, persist=0, debug=0, **kwargs):
@@ -97,7 +99,7 @@ class RTplot():
         if jitter:
             jt = numpy.random.normal(1, 1e-4, 1)[0]
         else:
-            jt = 1
+            jt = 1.0
 
         if x.shape != y.shape:
             raise ValueError("x, %s and y, %s arrays must have the same shape." % (x.shape, y.shape))
@@ -142,8 +144,8 @@ class RTplot():
         elif len(x.shape) > 2:
             pass
         else:
-            # print data
-            d = zip(x*jt, y*jt)
+            x *= jt ; y *= jt
+            d = zip(x, y)
             if not single:
                 self.gp.stdin.write(("plot '-' title '{}' with {}\n".format(labels[0], style)).encode())
             self._plot_d(d, single=single)
@@ -289,7 +291,7 @@ class RTplot():
         """
         if single:
             self.gp.stdin.write(("plot '-' title '{}' with {}\n".format(label, style)).encode())
-        self.gp.stdin.write(("\n".join(("%f "*len(l))%l for l in d)).encode())
+        self.gp.stdin.write(("\n".join(("%s "*len(l))%l for l in d)).encode())
         self.gp.stdin.write(b"\ne\n")
         self.gp.stdin.flush()
 
@@ -328,6 +330,9 @@ def rpc_plot(port=0, persist=0, hold=0):
     """
     XML RPC plot server factory function
     returns port if server successfully started or 0
+    :param port: port in which to listen for ploting commands. If 0, the first available port above 10000 is chosen
+    :param persist: If the plot should be persistent
+    :param hold: hold the previous plot when plotting.
     """
     if port == 0:
         port = 10001
@@ -337,10 +342,10 @@ def rpc_plot(port=0, persist=0, hold=0):
             continue
         try:
             server = AltXMLRPCServer(("localhost", port), logRequests=False, allow_none=True)
-            # server.register_introspection_functions()
-            # server.register_function(server.shutdown)
-            # server.register_signal(signal.SIGHUP)
-            # server.register_signal(signal.SIGINT)
+            server.register_introspection_functions()
+            server.register_function(server.shutdown)
+            server.register_signal(signal.SIGHUP)
+            server.register_signal(signal.SIGINT)
             T = Thread(target=_start_server, args=(server, persist, hold))
 
             # p = Process(target=_start_twisted_server, args=(port, persist))
@@ -352,6 +357,12 @@ def rpc_plot(port=0, persist=0, hold=0):
     port = port
     __ports_used.append(port)
     return port
+
+class PlotServer(ServerProxy):
+    def __init__(self, port=0, persist=1):
+        port = rpc_plot(port=port, persist=persist)
+        super(PlotServer, self).__init__("http://localhost:{}".format(port), allow_none=True)
+
 
 
 if __name__ == "__main__":
