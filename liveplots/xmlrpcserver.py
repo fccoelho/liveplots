@@ -168,7 +168,11 @@ class RTplot():
             - `multiplot`: Whether to make multiple subplots
         '''
         assert isinstance(data, list)
-        assert isinstance(data[0], list)
+        try:
+            assert isinstance(data[0], list)
+        except AssertionError as e:
+            print(e, 'Converting data in to list of lists')
+            data = [data]
         assert len(data[0]) > 0
         try:
             data = numpy.array(data, dtype=float)
