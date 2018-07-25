@@ -171,7 +171,7 @@ class RTplot():
         try:
             assert isinstance(data[0], list)
         except AssertionError as e:
-            print(e, 'Converting data in to list of lists')
+            print(e, 'Converting data into list of lists')
             data = [data]
         assert len(data[0]) > 0
         try:
@@ -295,8 +295,13 @@ class RTplot():
         """
         if single:
             self.gp.stdin.write(("plot '-' title '{}' with {}\n".format(label, style)).encode())
-        self.gp.stdin.write(("\n".join(("%s "*len(l))%l for l in d)).encode())
-        self.gp.stdin.write(b"\ne\n")
+        try:
+            self.gp.stdin.write(("\n".join(("%s "*len(l))%l for l in d)).encode())
+            self.gp.stdin.write(b"\ne\n")
+        except BrokenPipeError as exc:
+            self.gp = Popen(['gnuplot', '-persist'], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+            self.gp.stdin.write(("\n".join(("%s " * len(l)) % l for l in d)).encode())
+            self.gp.stdin.write(b"\ne\n")
         self.gp.stdin.flush()
 
 
