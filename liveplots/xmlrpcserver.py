@@ -13,7 +13,7 @@ from six.moves.xmlrpc_server import SimpleXMLRPCServer
 from threading import Thread, Lock
 from six.moves.queue import Queue
 from six.moves.xmlrpc_client import ServerProxy
-import time
+import copy
 from subprocess import PIPE, Popen
 import signal
 
@@ -164,7 +164,7 @@ class RTplot():
             - `data`: must be a list of lists.
             - `x`: x values for the series: list
             - `labels`: is a list of strings to serve as legend labels
-            - `style`: plot styles from gnuplot: lines, boxes, points, linespoints, etc.
+            - `style`: plot styles from gnuplot: lines, boxes, points, linespoints, etc. for each series
             - `multiplot`: Whether to make multiple subplots
         '''
         assert isinstance(data, list)
@@ -181,7 +181,8 @@ class RTplot():
             raise e
         if labels == []:
             labels = ['S_{}'.format(i) for i in range(len(data))]
-
+        # if isinstance(style, (str, bytes)):
+        #     style = copy.deepcopy([style]*len(labels))
         if multiplot:
             sq = numpy.sqrt(len(data))
             ad = 1 if sq % 1 > 0.5 else 0
@@ -299,6 +300,7 @@ class RTplot():
             self.gp.stdin.write(("\n".join(("%s "*len(l))%l for l in d)).encode())
             self.gp.stdin.write(b"\ne\n")
         except BrokenPipeError as exc:
+            print("A Error occurred (trying to recover: {}".format(exc))
             self.gp = Popen(['gnuplot', '-persist'], stdin=PIPE, stdout=PIPE, stderr=PIPE)
             self.gp.stdin.write(("\n".join(("%s " * len(l)) % l for l in d)).encode())
             self.gp.stdin.write(b"\ne\n")
