@@ -15,7 +15,7 @@ with open(path.join(here, 'README.rst')) as f:
     long_description = f.read()
 
 setup(name='liveplots',
-      version='0.8.7',
+      version='0.9.0',
       author='Flávio Codeço Coelho',
       author_email='fccoelho@gmail.com',
       url='https://github.com/fccoelho/liveplots',

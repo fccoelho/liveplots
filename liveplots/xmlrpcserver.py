@@ -1,18 +1,13 @@
-from __future__ import absolute_import
-from __future__ import print_function
-from six.moves import range
-from six.moves import zip
 
 __author__ = "fccoelho@gmail.com"
 __date__ = "$26/02/2009 10:44:29$"
 __docformat__ = "restructuredtext en"
 
-
 import numpy
-from six.moves.xmlrpc_server import SimpleXMLRPCServer
+from xmlrpc.server import SimpleXMLRPCServer
 from threading import Thread, Lock
-from six.moves.queue import Queue
-from six.moves.xmlrpc_client import ServerProxy
+from queue import Queue
+from xmlrpc.client import ServerProxy
 import copy
 from subprocess import PIPE, Popen
 import signal
@@ -125,16 +120,16 @@ class RTplot():
             self.gp.stdin.write(('set title "{}"\n'.format(title)).encode())
             single = 0
 
-
         self.gp.stdin.write(('set title "{}"\n'.format(title)).encode())
         if not labels:
             labels = ['s%s' % i for i in range(x.shape[0])]
         if len(x.shape) > 1 and len(x.shape) <= 2:
             i = 0
             if not single:
-                self.gp.stdin.write(("plot {} with {}\n".format(','.join(["'-' title '{}'".format(l) for l in labels]), style)).encode())
+                self.gp.stdin.write(("plot {} with {}\n".format(','.join(["'-' title '{}'".format(l) for l in labels]),
+                                                                style)).encode())
             for n in range(x.shape[0]):
-                d = zip(x[n]*jt, y[n]*jt)
+                d = zip(x[n] * jt, y[n] * jt)
                 l = labels[n]
                 self._plot_d(d, single=single)
                 i += 1
@@ -144,7 +139,8 @@ class RTplot():
         elif len(x.shape) > 2:
             pass
         else:
-            x *= jt ; y *= jt
+            x *= jt;
+            y *= jt
             d = zip(x, y)
             if not single:
                 self.gp.stdin.write(("plot '-' title '{}' with {}\n".format(labels[0], style)).encode())
@@ -173,7 +169,10 @@ class RTplot():
         except AssertionError as e:
             print(e, 'Converting data into list of lists')
             data = [data]
-        assert len(data[0]) > 0
+        try:
+            assert len(data[0]) > 0
+        except AssertionError as e:
+            print("No data Sent: ", e)
         try:
             data = numpy.array(data, dtype=float)
         except ValueError as e:
@@ -212,7 +211,8 @@ class RTplot():
             self.gp.stdin.write(('set title "{}"\n'.format(title)).encode())
             if len(data.shape) > 1:
                 i = 0
-                self.gp.stdin.write(("plot {}\n".format(','.join([" '-' title '{}'  with {}".format(l, style) for l in labels]))).encode())
+                self.gp.stdin.write(("plot {}\n".format(
+                    ','.join([" '-' title '{}'  with {}".format(l, style) for l in labels]))).encode())
                 for row, l in zip(data, labels):
                     if x == []:
                         x = numpy.arange(len(row))
@@ -264,7 +264,8 @@ class RTplot():
 
         if len(data.shape) == 2:
             if not single:
-                self.gp.stdin.write(("plot {}\n".format(','.join([" '-' title '{}' with boxes".format(l) for l in labels]))).encode())
+                self.gp.stdin.write(
+                    ("plot {}\n".format(','.join([" '-' title '{}' with boxes".format(l) for l in labels]))).encode())
             for n, row in enumerate(data):
                 m, bins = numpy.histogram(row, normed=True, bins=50)
                 d = list(zip(bins[:-1], m))
@@ -297,7 +298,7 @@ class RTplot():
         if single:
             self.gp.stdin.write(("plot '-' title '{}' with {}\n".format(label, style)).encode())
         try:
-            self.gp.stdin.write(("\n".join(("%s "*len(l))%l for l in d)).encode())
+            self.gp.stdin.write(("\n".join(("%s " * len(l)) % l for l in d)).encode())
             self.gp.stdin.write(b"\ne\n")
         except BrokenPipeError as exc:
             print("A Error occurred (trying to recover: {}".format(exc))
@@ -369,19 +370,19 @@ def rpc_plot(port=0, persist=0, hold=0):
     __ports_used.append(port)
     return port
 
+
 class PlotServer(ServerProxy):
     def __init__(self, port=0, persist=1):
         port = rpc_plot(port=port, persist=persist)
         super(PlotServer, self).__init__("http://localhost:{}".format(port), allow_none=True)
 
 
-
 if __name__ == "__main__":
     import six.moves.xmlrpc_client
+
     port = rpc_plot(persist=0)
     r_tplot = six.moves.xmlrpc_client.ServerProxy('http://localhost:%s' % port)
     data = [numpy.random.normal(0, 1, 1000).tolist() for i in range(4)]
     r_tplot.lines(data, [], ['a', 'b', 'c', 'd'], 'Test Lines', 'lines', 0)
     r_tplot.close_plot()
     r_tplot.close_plot()
-
