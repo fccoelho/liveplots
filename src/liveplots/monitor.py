@@ -17,10 +17,10 @@ EVENT_MAP: dict[str, str] = {
     "create": "created",
     "delete": "deleted",
     "close_write": "closed",
-    "close_nowrite": "closed",
-    "access": "modified",
-    "attrib": "modified",
+    "close_nowrite": "closed_no_write",
     "modify": "modified",
+    "move": "moved",
+    "open": "opened",
 }
 
 
@@ -60,6 +60,18 @@ class _EventHandler(FileSystemEventHandler):
         if not _is_dir(event):
             self._maybe_dispatch("closed", _get_path(event))
 
+    def on_closed_no_write(self, event: object) -> None:
+        if not _is_dir(event):
+            self._maybe_dispatch("closed_no_write", _get_path(event))
+
+    def on_opened(self, event: object) -> None:
+        if not _is_dir(event):
+            self._maybe_dispatch("opened", _get_path(event))
+
+    def on_moved(self, event: object) -> None:
+        if not _is_dir(event):
+            self._maybe_dispatch("moved", _get_path(event))
+
 
 def _is_dir(event: object) -> bool:
     return getattr(event, "is_directory", False)
@@ -79,7 +91,7 @@ class Monitor:
         filepath: Full path of the file or directory to monitor.
         events: List of event names to watch for. Valid events:
             ``create``, ``delete``, ``close_write``, ``close_nowrite``,
-            ``access``, ``attrib``, ``modify``.
+            ``modify``, ``move``, ``open``.
         action: Callback invoked with the file path when an event fires.
         recursive: Whether to monitor subdirectories recursively.
         debug: Enable debug logging of events.

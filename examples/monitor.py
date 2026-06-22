@@ -10,9 +10,15 @@ pserver = PlotServer()
 
 
 def action(fpath: str) -> None:
-    """Load a file and plot its contents."""
+    """Load a .npy file and plot its contents."""
     print(f"Action triggered: {fpath}")
-    data = np.load(fpath)
+    if not fpath.endswith(".npy"):
+        return
+    try:
+        data = np.load(fpath)
+    except (FileNotFoundError, ValueError) as e:
+        print(f"  Skipping {fpath}: {e}")
+        return
     pserver.lines(data.tolist(), [], ["data"], "")
 
 

@@ -26,7 +26,7 @@ def test_invalid_event_raises(tmp_path: object) -> None:
 
 def test_event_map_has_all_expected_events() -> None:
     """The event map should cover all documented events."""
-    expected = {"create", "delete", "close_write", "close_nowrite", "access", "attrib", "modify"}
+    expected = {"create", "delete", "close_write", "close_nowrite", "modify", "move", "open"}
     assert expected == set(EVENT_MAP)
 
 
