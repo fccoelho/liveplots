@@ -16,13 +16,13 @@ ps.flush_queue()
 print("Lines plotted. Sending 20 histogram updates...")
 
 t0 = time.perf_counter()
-for n in range(20):
+for n in range(30):
     d = random.normal(n * 0.3, 1, 200)
     ps.histogram(d.tolist(), ["data"], f"Step {n}")
     ps.flush_queue()
     time.sleep(0.1)
 total = time.perf_counter() - t0
 
-print(f"Animated 20 histograms in {total:.1f}s")
+print(f"Animated 30 histograms in {total:.1f}s")
 
 ps.close()
