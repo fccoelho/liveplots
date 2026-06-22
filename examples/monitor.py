@@ -1,17 +1,20 @@
 """File monitor example: watch a directory and plot data on change."""
 
 import time
+from pathlib import Path
 
 import numpy as np
 
 from liveplots import Monitor, PlotServer
 
-pserver = PlotServer()
+watch_dir = Path("/tmp/liveplots_monitor")
+watch_dir.mkdir(exist_ok=True)
+
+pserver = PlotServer(persist=1)
 
 
 def action(fpath: str) -> None:
     """Load a .npy file and plot its contents."""
-    print(f"Action triggered: {fpath}")
     if not fpath.endswith(".npy"):
         return
     try:
@@ -19,16 +22,23 @@ def action(fpath: str) -> None:
     except (FileNotFoundError, ValueError) as e:
         print(f"  Skipping {fpath}: {e}")
         return
-    pserver.lines(data.tolist(), [], ["data"], "")
+    print(f"  Plotting {fpath} ({len(data)} points)")
+    pserver.lines(data.tolist(), [], ["data"], f"{Path(fpath).name}")
 
 
-# Monitor /tmp for new files
-monitor = Monitor("/tmp", ["close_write"], action, debug=True)
+monitor = Monitor(str(watch_dir), ["close_write"], action, debug=True)
 
-# Create a test file to trigger the monitor
-data = np.random.normal(0, 1, 1000)
-np.save("/tmp/liveplots_demo.npy", data)
+print(f"Monitoring {watch_dir} for .npy files...")
+print("Writing 3 sample files...")
 
-# Wait for the event to be processed
-time.sleep(1)
+for i in range(3):
+    data = np.random.normal(i, 1, 500)
+    fpath = watch_dir / f"sample_{i}.npy"
+    np.save(fpath, data)
+    time.sleep(0.3)
+
+time.sleep(0.5)
 monitor.stop()
+pserver.flush_queue()
+pserver.close()
+print("Done.")
