@@ -25,7 +25,17 @@ _POLL_TIMEOUT_MS = 100
 _CONTROL_TIMEOUT_MS = 10_000
 _BASE_PORT = 10001
 
-_DATA_METHODS = frozenset({"scatter", "lines", "histogram"})
+_DATA_METHODS = frozenset(
+    {
+        "scatter",
+        "lines",
+        "histogram",
+        "error_bars",
+        "filled_curves",
+        "boxplot",
+        "heatmap",
+    }
+)
 _CONTROL_METHODS = frozenset({"clear_fig", "close_plot", "flush_queue", "set_hold"})
 
 
@@ -214,6 +224,34 @@ class PlotServer:
         See :meth:`liveplots.plotter.RTplot.histogram` for parameter details.
         """
         self._send_data("histogram", args, kwargs)
+
+    def error_bars(self, *args: Any, **kwargs: Any) -> None:
+        """Send error bar plot command (fire-and-forget).
+
+        See :meth:`liveplots.plotter.RTplot.error_bars` for parameter details.
+        """
+        self._send_data("error_bars", args, kwargs)
+
+    def filled_curves(self, *args: Any, **kwargs: Any) -> None:
+        """Send filled curves command (fire-and-forget).
+
+        See :meth:`liveplots.plotter.RTplot.filled_curves` for parameter details.
+        """
+        self._send_data("filled_curves", args, kwargs)
+
+    def boxplot(self, *args: Any, **kwargs: Any) -> None:
+        """Send box-and-whisker plot command (fire-and-forget).
+
+        See :meth:`liveplots.plotter.RTplot.boxplot` for parameter details.
+        """
+        self._send_data("boxplot", args, kwargs)
+
+    def heatmap(self, *args: Any, **kwargs: Any) -> None:
+        """Send heatmap command (fire-and-forget).
+
+        See :meth:`liveplots.plotter.RTplot.heatmap` for parameter details.
+        """
+        self._send_data("heatmap", args, kwargs)
 
     def clear_fig(self) -> int:
         """Clear the figure (synchronous)."""

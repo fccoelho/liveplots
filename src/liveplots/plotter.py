@@ -18,6 +18,8 @@ _NDIM_2D = 2
 _NDIM_3D = 3
 _MULTI_LAYOUT_THRESHOLD = 0.5
 _HIST_BINS = 50
+_FILL_TRANSPARENCY = 0.4
+_BOX_WIDTH = 0.5
 
 
 class RTplot:
@@ -344,6 +346,236 @@ class RTplot:
         if multiplot:
             self._write("unset multiplot")
 
+    def error_bars(
+        self,
+        x: list[float] | list[list[float]],
+        y: list[float] | list[list[float]],
+        y_err: list[float] | list[list[float]],
+        *,
+        labels: list[str] | None = None,
+        title: str = "",
+        style: str = "yerrorbars",
+        multiplot: int = 0,
+    ) -> int:
+        """Plot data points with vertical error bars.
+
+        Args:
+            x: X values (list or list of lists for multiple series).
+            y: Y values, same shape as ``x``.
+            y_err: Error magnitudes (±delta), same shape as ``x``.
+            labels: Legend labels.
+            title: Plot title.
+            style: ``'yerrorbars'`` (points + bars) or ``'yerrorlines'``
+                (connected lines + bars).
+            multiplot: Whether to make multiple subplots.
+
+        Returns:
+            0 on success.
+        """
+        x_arr = np.asarray(x, dtype=float)
+        y_arr = np.asarray(y, dtype=float)
+        err_arr = np.asarray(y_err, dtype=float)
+
+        if x_arr.shape != y_arr.shape or x_arr.shape != err_arr.shape:
+            raise ValueError("x, y, and y_err must have the same shape")
+
+        n_series = x_arr.shape[0] if x_arr.ndim == _NDIM_2D else 1
+        if labels is None:
+            labels = [f"e{i}" for i in range(n_series)]
+
+        single = bool(multiplot)
+        if single:
+            self._write_multiplot_layout(n_series, title)
+        else:
+            self._write(f'set title "{title}"')
+
+        if x_arr.ndim == _NDIM_2D:
+            if not single:
+                self._write(
+                    "plot " + ",".join(f" '-' title '{lbl}' with {style}" for lbl in labels)
+                )
+            for n in range(x_arr.shape[0]):
+                d = zip(x_arr[n], y_arr[n], err_arr[n], strict=True)
+                self._plot_data(d, label=labels[n], style=style, single=single)
+            if multiplot:
+                self._write("unset multiplot")
+        elif x_arr.ndim > _NDIM_2D:
+            logger.warning("error_bars() does not support arrays with >2 dimensions")
+        else:
+            d = zip(x_arr, y_arr, err_arr, strict=True)
+            if not single:
+                self._write(f"plot '-' title '{labels[0]}' with {style}")
+            self._plot_data(d, label=labels[0], style=style, single=single)
+            if multiplot:
+                self._write("unset multiplot")
+        return 0
+
+    def filled_curves(
+        self,
+        x: list[float],
+        y_low: list[float],
+        y_high: list[float],
+        *,
+        labels: list[str] | None = None,
+        title: str = "",
+        fill_color: str = "blue",
+        multiplot: int = 0,
+    ) -> int:
+        """Plot a filled area between two curves (e.g. confidence bands).
+
+        Args:
+            x: X values shared by both curves.
+            y_low: Lower boundary values.
+            y_high: Upper boundary values.
+            labels: Legend labels.
+            title: Plot title.
+            fill_color: Fill color (any gnuplot color name or ``'#rrggbb'``).
+            multiplot: Whether to make multiple subplots.
+
+        Returns:
+            0 on success.
+        """
+        x_arr = np.asarray(x, dtype=float)
+        low_arr = np.asarray(y_low, dtype=float)
+        high_arr = np.asarray(y_high, dtype=float)
+
+        if x_arr.shape != low_arr.shape or x_arr.shape != high_arr.shape:
+            raise ValueError("x, y_low, and y_high must have the same shape")
+
+        if labels is None:
+            labels = ["band"]
+
+        self._write(f"set style fill transparent solid {_FILL_TRANSPARENCY} border -1")
+
+        single = bool(multiplot)
+        n_series = low_arr.shape[0] if low_arr.ndim == _NDIM_2D else 1
+
+        if single:
+            self._write_multiplot_layout(n_series, title)
+        else:
+            self._write(f'set title "{title}"')
+
+        if low_arr.ndim == _NDIM_2D:
+            if not single:
+                self._write(
+                    "plot "
+                    + ",".join(
+                        f" '-' title '{lbl}' with filledcurves lc rgb '{fill_color}'"
+                        for lbl in labels
+                    )
+                )
+            for n in range(low_arr.shape[0]):
+                d = zip(x_arr, low_arr[n], high_arr[n], strict=True)
+                self._plot_data(d, label=labels[n], style="filledcurves", single=single)
+            if multiplot:
+                self._write("unset multiplot")
+        elif low_arr.ndim > _NDIM_2D:
+            logger.warning("filled_curves() does not support arrays with >2 dimensions")
+        else:
+            d = zip(x_arr, low_arr, high_arr, strict=True)
+            if not single:
+                self._write(f"plot '-' title '{labels[0]}' with filledcurves lc rgb '{fill_color}'")
+            self._plot_data(d, label=labels[0], style="filledcurves", single=single)
+            if multiplot:
+                self._write("unset multiplot")
+        return 0
+
+    def boxplot(
+        self,
+        data: list[float] | list[list[float]],
+        *,
+        labels: list[str] | None = None,
+        title: str = "",
+    ) -> int:
+        """Create a box-and-whisker plot.
+
+        Gnuplot automatically computes quartiles, whiskers, and outliers.
+
+        Args:
+            data: A list of y-values (single category) or a list of lists
+                (one inner list per category).
+            labels: Category labels for the x-axis.
+            title: Plot title.
+
+        Returns:
+            0 on success.
+        """
+        if not isinstance(data, list):
+            raise TypeError("data must be a list")
+
+        if data and isinstance(data[0], list):
+            categories = [np.asarray(d, dtype=float) for d in data]
+        else:
+            categories = [np.asarray(data, dtype=float)]
+
+        if labels is None:
+            labels = [f"cat_{i}" for i in range(len(categories))]
+
+        self._write("set style data boxplot")
+        self._write(f"set boxwidth {_BOX_WIDTH}")
+        self._write("set style fill solid 0.5 border -1")
+        self._write(f'set title "{title}"')
+
+        xtics = ", ".join(f'"{lbl}" {i}' for i, lbl in enumerate(labels))
+        self._write(f"set xtics ({xtics})")
+
+        rows: list[tuple[float, float]] = []
+        for cat_idx, cat_data in enumerate(categories):
+            for val in cat_data:
+                rows.append((float(cat_idx), float(val)))
+        self._write("plot '-' using 1:2 with boxplot")
+        self._plot_data(rows)
+        return 0
+
+    def heatmap(
+        self,
+        matrix: list[list[float]] | np.ndarray,
+        *,
+        title: str = "",
+        colormap: str = "jet",
+    ) -> int:
+        """Render a 2D matrix as a heatmap.
+
+        Args:
+            matrix: 2D array of values. Each row is a y-position, each column
+                an x-position.
+            title: Plot title.
+            colormap: Gnuplot palette name. One of: ``'jet'``, ``'hot'``,
+                ``'gray'``, ``'cool'``, ``'viridis'``, ``'color'`` (gnuplot
+                default). You can also pass a raw ``set palette`` definition.
+
+        Returns:
+            0 on success.
+        """
+        mat = np.asarray(matrix, dtype=float)
+        if mat.ndim != _NDIM_2D:
+            raise ValueError(f"matrix must be 2D, got {mat.ndim}D")
+
+        self._set_palette(colormap)
+        self._write("set colorbox")
+        self._write("unset xtics")
+        self._write("unset ytics")
+        self._write(f'set title "{title}"')
+
+        self._write("plot '-' matrix with image")
+        self._plot_matrix(mat)
+        return 0
+
+    def _set_palette(self, colormap: str) -> None:
+        """Apply a named colormap as a gnuplot palette."""
+        palettes = {
+            "jet": 'set palette defined (0 "#0000ff", 0.35 "#00ffff", '
+            '0.5 "#00ff00", 0.75 "#ffff00", 1.0 "#ff0000")',
+            "hot": 'set palette defined (0 "black", 0.33 "red", 0.66 "yellow", 1.0 "white")',
+            "gray": "set palette gray",
+            "cool": 'set palette defined (0 "cyan", 1.0 "magenta")',
+            "viridis": 'set palette defined (0 "#440154", 0.25 "#3b528b", '
+            '0.5 "#21918c", 0.75 "#5ec962", 1.0 "#fde725")',
+            "color": "set palette color",
+        }
+        cmd = palettes.get(colormap, f"set palette {colormap}")
+        self._write(cmd)
+
     def _write_multiplot_layout(self, n: int, title: str) -> None:
         """Write the multiplot layout command."""
         sq = np.sqrt(n)
@@ -375,6 +607,26 @@ class RTplot:
 
         if single:
             self._write(f"plot '-' title '{label}' with {style}")
+
+        try:
+            assert self._gp.stdin is not None
+            self._gp.stdin.write(payload)
+        except BrokenPipeError:
+            logger.warning("Gnuplot process died, respawning...")
+            self._gp = self._spawn_gnuplot(self.persist)
+            assert self._gp.stdin is not None
+            self._gp.stdin.write(payload)
+        self._gp.stdin.flush()
+
+    def _plot_matrix(self, matrix: np.ndarray) -> None:
+        """Write matrix-format inline data to the gnuplot process.
+
+        Unlike :meth:`_plot_data`, this writes each matrix row as
+        space-separated values on its own line (no tuple formatting),
+        suitable for ``plot '-' matrix`` commands.
+        """
+        lines = [" ".join(str(v) for v in row) for row in matrix]
+        payload = ("\n".join(lines) + "\ne\n").encode()
 
         try:
             assert self._gp.stdin is not None

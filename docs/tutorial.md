@@ -85,6 +85,78 @@ data = [normal(i, 1, 100).tolist() for i in range(4)]
 pserver.lines(data, [], ["a", "b", "c", "d"], "Multiplot", "lines", 1)
 ```
 
+### Error bars
+
+Plot data points with vertical error bars — ideal for measurement uncertainty:
+
+```python
+import numpy as np
+
+x = np.linspace(0, 10, 30).tolist()
+y = np.sin(x).tolist()
+err = (0.2 + 0.1 * np.random.rand(30)).tolist()
+pserver.error_bars(x, y, err, labels=["sensor"], title="Sensor Readings")
+```
+
+Use `style="yerrorlines"` for connected lines + bars instead of points + bars.
+
+### Filled curves (confidence bands)
+
+Fill the area between two curves — great for mean ± std bands:
+
+```python
+x = np.linspace(0, 10, 200).tolist()
+mean = np.sin(x)
+lower = (mean - 0.3).tolist()
+upper = (mean + 0.3).tolist()
+pserver.filled_curves(x, lower, upper, title="Confidence Band", fill_color="green")
+```
+
+### Box-and-whisker plots
+
+Compare distributions — gnuplot auto-computes quartiles and outliers:
+
+```python
+data = [np.random.normal(mu, sigma, 200).tolist()
+        for mu, sigma in [(50, 5), (60, 10), (45, 8)]]
+pserver.boxplot(data, labels=["Run A", "Run B", "Run C"], title="Benchmark")
+```
+
+### Heatmaps
+
+Render a 2D matrix as a color-mapped image:
+
+```python
+x = np.linspace(-3, 3, 50)
+y = np.linspace(-3, 3, 50)
+xx, yy = np.meshgrid(x, y, indexing="ij")
+matrix = np.exp(-(xx**2 + yy**2) / 2).tolist()
+pserver.heatmap(matrix, title="2D Gaussian", colormap="jet")
+```
+
+Available colormaps: `jet`, `hot`, `gray`, `cool`, `viridis`, `color`.
+
+### Other gnuplot styles via the `style` parameter
+
+The `lines()` method accepts any gnuplot plot style string. Useful options:
+
+| Style | Description |
+|-------|-------------|
+| `lines` | Connected line segments (default) |
+| `points` | Discrete point markers |
+| `linespoints` | Lines with markers at each point |
+| `dots` | Tiny dots — good for dense data |
+| `impulses` | Vertical lines from baseline |
+| `steps` | Staircase (trace x first, then y) |
+| `fsteps` | Staircase (trace y first, then x) |
+| `histeps` | Histogram-style steps |
+| `boxes` | Bar chart rectangles |
+
+```python
+data = np.cumsum(np.random.choice([-1, 1], 50)).astype(float).tolist()
+pserver.lines([data], None, ["walk"], "Random Walk", "fsteps")
+```
+
 ### Flushing the queue
 
 Plot commands are fire-and-forget (sent via PUSH, no response expected).

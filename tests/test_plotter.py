@@ -117,3 +117,48 @@ class TestRTplotIntegration:
         assert elapsed < 0.5  # noqa: PLR2004
         client.flush_queue()
         client.close()
+
+    def test_error_bars(self) -> None:
+        client = PlotServer(port=0, persist=0)
+        x = np.linspace(0, 10, 50)
+        y = np.sin(x)
+        err = np.abs(np.random.normal(0.1, 0.05, 50))
+        client.error_bars(x.tolist(), y.tolist(), err.tolist(), title="Error Bars")
+        time.sleep(0.2)
+        client.flush_queue()
+        client.close()
+
+    def test_filled_curves(self) -> None:
+        client = PlotServer(port=0, persist=0)
+        x = np.linspace(0, 10, 100)
+        mean = np.sin(x)
+        std = 0.2 + 0.1 * np.abs(np.cos(x))
+        client.filled_curves(
+            x.tolist(),
+            (mean - std).tolist(),
+            (mean + std).tolist(),
+            title="Confidence Band",
+            fill_color="green",
+        )
+        time.sleep(0.2)
+        client.flush_queue()
+        client.close()
+
+    def test_boxplot(self) -> None:
+        client = PlotServer(port=0, persist=0)
+        data = [np.random.normal(i, 1, 100).tolist() for i in range(4)]
+        client.boxplot(data, labels=["A", "B", "C", "D"], title="Distributions")
+        time.sleep(0.2)
+        client.flush_queue()
+        client.close()
+
+    def test_heatmap(self) -> None:
+        client = PlotServer(port=0, persist=0)
+        x = np.linspace(-3, 3, 50)
+        y = np.linspace(-3, 3, 50)
+        xx, yy = np.meshgrid(x, y, indexing="ij")
+        matrix = np.exp(-(xx**2 + yy**2) / 2)
+        client.heatmap(matrix.tolist(), title="2D Gaussian", colormap="jet")
+        time.sleep(0.2)
+        client.flush_queue()
+        client.close()
