@@ -1,0 +1,3 @@
+# Monitor API
+
+::: liveplots.monitor

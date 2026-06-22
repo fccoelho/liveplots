@@ -1,0 +1,3 @@
+# Plotter API
+
+::: liveplots.plotter

@@ -1,5 +1,0 @@
-syntax: glob
-*.pyc
-src/dist/*
-src/build/*
-liveplots.egg-info/*
