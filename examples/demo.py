@@ -91,6 +91,33 @@ def demo_heatmap(ps: PlotServer) -> None:
     ps.flush_queue()
 
 
+def demo_heatmap_animation(ps: PlotServer) -> None:
+    n_frames = 40
+    grid = np.linspace(-5, 5, 60)
+    xx, yy = np.meshgrid(grid, grid, indexing="ij")
+    centers = [
+        {"phase": 0.0, "radius": 3.0, "freq": 1.0, "sigma": 1.0, "amp": 1.0},
+        {"phase": 2.1, "radius": 2.0, "freq": 1.5, "sigma": 0.8, "amp": 0.7},
+        {"phase": 4.0, "radius": 2.5, "freq": 0.7, "sigma": 1.2, "amp": 0.5},
+    ]
+    print(f"   Animating {n_frames} frames...", end="", flush=True)
+    for i in range(n_frames):
+        t = i / n_frames * 2 * np.pi
+        matrix = np.zeros_like(xx)
+        for c in centers:
+            cx = c["radius"] * np.cos(t * c["freq"] + c["phase"])
+            cy = c["radius"] * np.sin(t * c["freq"] * 1.3 + c["phase"])
+            matrix += c["amp"] * np.exp(-((xx - cx) ** 2 + (yy - cy) ** 2) / (2 * c["sigma"] ** 2))
+        ps.heatmap(
+            matrix.tolist(),
+            title=f"Frame {i + 1}/{n_frames}",
+            colormap="jet",
+        )
+        time.sleep(0.05)
+    ps.flush_queue()
+    print(" done.")
+
+
 def demo_steps(ps: PlotServer) -> None:
     data = np.cumsum(np.random.choice([-1, 1], size=50)).astype(float).tolist()
     ps.lines([data], None, ["random walk"], "Discrete Random Walk", "fsteps")
@@ -127,6 +154,7 @@ DEMOS = [
     ("Filled Curves — confidence band", demo_filled_curves),
     ("Boxplot — distribution comparison", demo_boxplot),
     ("Heatmap — 2D field", demo_heatmap),
+    ("Heatmap Animation — moving Gaussians", demo_heatmap_animation),
     ("Step Plot — discrete signal", demo_steps),
     ("Multiplot — panel layout", demo_multiplot),
     ("Real-Time Stream — live updates", demo_realtime_stream),
