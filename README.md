@@ -1,5 +1,12 @@
 # liveplots
 
+[![CI](https://github.com/fccoelho/liveplots/actions/workflows/ci.yml/badge.svg)](https://github.com/fccoelho/liveplots/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/liveplots)](https://pypi.org/project/liveplots/)
+[![Python](https://img.shields.io/pypi/pyversions/liveplots)](https://pypi.org/project/liveplots/)
+[![License](https://img.shields.io/pypi/l/liveplots)](https://www.gnu.org/licenses/gpl-3.0.html)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![Code style: Ruff](https://img.shields.io/badge/code%20style-ruff-2666e6)](https://github.com/astral-sh/ruff)
+
 Real-time live plot server using ZeroMQ and Gnuplot.
 
 ## Description
