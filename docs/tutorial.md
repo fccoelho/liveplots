@@ -26,8 +26,11 @@ uv add liveplots
 
 ### Starting a server
 
-Create a `PlotServer` — this starts an XML-RPC server in a background thread
-and returns a client proxy:
+Create a `PlotServer` — this starts a ZeroMQ server in a background thread
+and connects a client with two sockets:
+
+- **PUSH** socket for plot data (fire-and-forget, never blocks)
+- **REQ** socket for control commands (synchronous)
 
 ```python
 from liveplots import PlotServer
@@ -84,11 +87,15 @@ pserver.lines(data, [], ["a", "b", "c", "d"], "Multiplot", "lines", 1)
 
 ### Flushing the queue
 
-Plot commands are asynchronous. To wait for all pending plots to finish:
+Plot commands are fire-and-forget (sent via PUSH, no response expected).
+To block until the server has finished processing all pending plots:
 
 ```python
 pserver.flush_queue()
 ```
+
+This sends a synchronous control command via REQ/REP that blocks until
+the server's internal queue is drained.
 
 ## File System Monitoring
 

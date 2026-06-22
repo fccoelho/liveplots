@@ -42,7 +42,8 @@ def main() -> None:
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO)
 
     port = rpc_plot(persist=0)
-    logger.info("Liveplot server running on port %s. Press Ctrl+C to stop.", port)
+    logger.info("Liveplot server running: data port %s, control port %s.", port, port + 1)
+    logger.info("Press Ctrl+C to stop.")
 
     try:
         while True:

@@ -5,14 +5,14 @@ build-backend = "hatchling.build"
 [project]
 name = "liveplots"
 version = "1.0.0"
-description = "Real-time live plot server using XML-RPC and Gnuplot"
+description = "Real-time live plot server using ZeroMQ and Gnuplot"
 readme = "README.md"
 license = "GPL-3.0-or-later"
 requires-python = ">=3.12"
 authors = [
     { name = "Flávio Codeço Coelho", email = "fccoelho@gmail.com" },
 ]
-keywords = ["plotting", "real-time", "gnuplot", "xmlrpc", "monitoring"]
+keywords = ["plotting", "real-time", "gnuplot", "zeromq", "zmq", "monitoring"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
@@ -27,6 +27,7 @@ classifiers = [
 dependencies = [
     "numpy>=1.26",
     "watchdog>=4.0",
+    "pyzmq>=25.0",
 ]
 
 [project.optional-dependencies]

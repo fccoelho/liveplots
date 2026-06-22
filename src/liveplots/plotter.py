@@ -1,18 +1,15 @@
-"""Gnnuplot-based real-time plotting."""
+"""Gnuplot-based real-time plotting."""
 
 from __future__ import annotations
 
-import functools
 import logging
-from queue import Queue
 from subprocess import PIPE, Popen
-from threading import Thread
-from typing import TYPE_CHECKING, Any, TypeVar, cast
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable
+    from collections.abc import Iterable
 
 logger = logging.getLogger(__name__)
 
@@ -22,54 +19,25 @@ _NDIM_3D = 3
 _MULTI_LAYOUT_THRESHOLD = 0.5
 _HIST_BINS = 50
 
-F = TypeVar("F", bound="Callable[..., Any]")
-
-
-def _enqueue(func: F) -> F:  # noqa: UP047
-    """Decorator that places the call on the instance's work queue.
-
-    Plotting methods decorated with this return immediately; the
-    actual gnuplot interaction happens asynchronously in a worker thread.
-    Use :meth:`RTplot.flush_queue` to block until all queued work is done.
-    """
-
-    @functools.wraps(func)
-    def wrapper(self: RTplot, *args: Any, **kwargs: Any) -> Any:
-        self._queue.put((func, (self, *args), kwargs))
-
-    return cast("F", wrapper)
-
 
 class RTplot:
     """Real-time plotting class based on Gnuplot.
 
-    Maintains a FIFO queue of plotting calls consumed sequentially
-    by a worker thread, so plot commands don't block the caller.
+    Methods execute synchronously — the server layer is responsible
+    for queuing and async processing via ZeroMQ sockets.
     """
 
     def __init__(self, *, persist: int = 0, hold: bool = False) -> None:
         self._gp = self._spawn_gnuplot(persist)
         self.plots: list[np.ndarray] = []
-        self._queue: Queue[tuple[Callable[..., Any], tuple[Any, ...], dict[str, Any]]] = Queue()
         self.persist = persist
         self.hold = hold
-        self._worker_thread = Thread(target=self._worker, daemon=True)
-        self._worker_thread.start()
 
     def _spawn_gnuplot(self, persist: int) -> Popen[bytes]:
         cmd = ["gnuplot"]
         if persist:
             cmd.append("-persist")
         return Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
-
-    def _worker(self) -> None:
-        while True:
-            func, args, kwargs = self._queue.get()
-            try:
-                func(*args, **kwargs)
-            except Exception:
-                logger.exception("Error in plot worker thread")
-            self._queue.task_done()
 
     def set_hold(self, on: bool) -> int:
         """Set hold state of the plot.
@@ -85,17 +53,6 @@ class RTplot:
         self.plots = []
         return 0
 
-    def close_plot(self) -> int:
-        """Flush the queue and close the plot."""
-        self._queue.join()
-        return 0
-
-    def flush_queue(self) -> int:
-        """Block until all queued plot commands have been processed."""
-        self._queue.join()
-        return 0
-
-    @_enqueue
     def scatter(
         self,
         x: list[float] | list[list[float]],
@@ -213,7 +170,6 @@ class RTplot:
         if multiplot:
             self._write("unset multiplot")
 
-    @_enqueue
     def lines(
         self,
         data: list[list[float]],
@@ -309,7 +265,6 @@ class RTplot:
             self._write(f"plot '-' with {style}")
             self._plot_data(d, style=style)
 
-    @_enqueue
     def histogram(
         self,
         data: list[float] | list[list[float]],

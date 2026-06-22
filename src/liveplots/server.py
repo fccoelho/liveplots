@@ -1,106 +1,249 @@
-"""XML-RPC server for real-time plotting."""
+"""ZeroMQ-based plot server and client.
+
+Uses a PUSH/PULL socket pair for fire-and-forget data commands
+(scatter, lines, histogram) and a REQ/REP pair for synchronous
+control commands (flush_queue, clear_fig, close_plot, set_hold).
+"""
 
 from __future__ import annotations
 
 import logging
-import signal
+from queue import Queue
 from threading import Thread
-from xmlrpc.client import ServerProxy
-from xmlrpc.server import SimpleXMLRPCServer
+from typing import Any
+
+import zmq
 
 from liveplots.plotter import RTplot
 
 logger = logging.getLogger(__name__)
 
-_ports_in_use: set[int] = set()
+_allocated_ports: set[int] = set()
+_servers: list[ZMQPlotServer] = []
+
+_POLL_TIMEOUT_MS = 100
+_CONTROL_TIMEOUT_MS = 10_000
+_BASE_PORT = 10001
+
+_DATA_METHODS = frozenset({"scatter", "lines", "histogram"})
+_CONTROL_METHODS = frozenset({"clear_fig", "close_plot", "flush_queue", "set_hold"})
 
 
-class AltXMLRPCServer(SimpleXMLRPCServer):
-    """XML-RPC server that can be cleanly shut down via signals.
+class ZMQPlotServer:
+    """ZeroMQ plot server with dual sockets.
 
-    Based on https://code.activestate.com/recipes/114579-remotely-exit-a-xmlrpc-server-cleanly/
+    Binds a PULL socket for data commands (fire-and-forget from clients)
+    and a REP socket for control commands (synchronous request-response).
+    Commands are processed by a worker thread via an internal queue.
+
+    Args:
+        data_port: TCP port for the PULL (data) socket.
+        control_port: TCP port for the REP (control) socket.
+        persist: Whether gnuplot windows should persist.
+        hold: Whether to hold the previous plot when plotting new data.
     """
 
-    finished: bool = False
+    def __init__(
+        self,
+        data_port: int,
+        control_port: int,
+        *,
+        persist: int = 0,
+        hold: bool = False,
+    ) -> None:
+        self._ctx = zmq.Context.instance()
+        self._plotter = RTplot(persist=persist, hold=hold)
+        self._queue: Queue[dict[str, Any]] = Queue()
+        self._finished = False
 
-    def register_signal(self, signum: int) -> None:
-        """Register a signal handler that triggers shutdown."""
-        signal.signal(signum, self._signal_handler)
+        self._pull_socket: zmq.Socket[bytes] = self._ctx.socket(zmq.PULL)
+        try:
+            self._pull_socket.bind(f"tcp://localhost:{data_port}")
+        except zmq.ZMQError:
+            self._pull_socket.close()
+            raise
+        self._pull_socket.rcvtimeo = _POLL_TIMEOUT_MS
 
-    def _signal_handler(self, signum: int, frame: object) -> None:
-        logger.info("Caught signal %s, shutting down", signum)
-        self.shutdown()
+        self._rep_socket: zmq.Socket[bytes] = self._ctx.socket(zmq.REP)
+        try:
+            self._rep_socket.bind(f"tcp://localhost:{control_port}")
+        except zmq.ZMQError:
+            self._rep_socket.close()
+            self._pull_socket.close()
+            raise
+        self._rep_socket.rcvtimeo = _POLL_TIMEOUT_MS
 
-    def shutdown(self) -> int:  # type: ignore[override]
-        """Mark the server for shutdown.
+        self._consumer_thread = Thread(target=self._consume_pull, daemon=True)
+        self._worker_thread = Thread(target=self._process_queue, daemon=True)
+        self._control_thread = Thread(target=self._handle_control, daemon=True)
+        self._consumer_thread.start()
+        self._worker_thread.start()
+        self._control_thread.start()
 
-        Returns 1 so it can be used as an XML-RPC remote callable.
-        """
-        self.finished = True
-        return 1
+    def _consume_pull(self) -> None:
+        """Receive data commands from PULL socket and enqueue them."""
+        while not self._finished:
+            try:
+                msg: dict[str, Any] = self._pull_socket.recv_pyobj()
+            except zmq.Again:
+                continue
+            self._queue.put(msg)
 
-    def serve_forever(self, poll_interval: float = 0.5) -> None:
-        """Serve requests until :meth:`shutdown` is called."""
-        while not self.finished:
-            self.handle_request()
+    def _process_queue(self) -> None:
+        """Process queued data commands by calling plotter methods."""
+        while True:
+            msg = self._queue.get()
+            method = msg["method"]
+            args = msg.get("args", ())
+            kwargs = msg.get("kwargs", {})
+            try:
+                func = getattr(self._plotter, method)
+                func(*args, **kwargs)
+            except Exception:
+                logger.exception("Error processing plot command: %s", method)
+            self._queue.task_done()
 
+    def _handle_control(self) -> None:
+        """Handle synchronous control requests via REP socket."""
+        while not self._finished:
+            try:
+                msg: dict[str, Any] = self._rep_socket.recv_pyobj()
+            except zmq.Again:
+                continue
 
-def _start_server(server: AltXMLRPCServer, persist: int, hold: bool) -> None:
-    """Register a plot instance and serve requests."""
-    server.register_instance(RTplot(persist=persist, hold=hold))
-    server.register_introspection_functions()
-    server.serve_forever()
+            method = msg["method"]
+            args = msg.get("args", ())
+            kwargs = msg.get("kwargs", {})
+
+            try:
+                if method in ("flush_queue", "close_plot"):
+                    self._queue.join()
+                    result: Any = 0
+                else:
+                    func = getattr(self._plotter, method)
+                    result = func(*args, **kwargs)
+                self._rep_socket.send_pyobj({"result": result})
+            except Exception:
+                logger.exception("Error handling control command: %s", method)
+                self._rep_socket.send_pyobj({"error": "internal server error"})
+
+    def stop(self) -> None:
+        """Stop the server and close sockets."""
+        self._finished = True
+        self._pull_socket.close(linger=0)
+        self._rep_socket.close(linger=0)
 
 
 def rpc_plot(port: int = 0, persist: int = 0, hold: bool = False) -> int:
-    """Start an XML-RPC plot server and return the port.
+    """Start a ZMQ plot server and return the data port.
+
+    The control port is ``data_port + 1``.
 
     Args:
-        port: Port to listen on. If 0, the first available port
-            starting from 10001 is chosen.
-        persist: Whether gnuplot windows should persist after the process exits.
+        port: Data port to listen on. If 0, the first available port
+            pair starting from 10001 is chosen.
+        persist: Whether gnuplot windows should persist.
         hold: Whether to hold the previous plot when plotting new data.
 
     Returns:
-        The port number the server is listening on.
+        The data port number the server is listening on.
     """
     if port == 0:
-        port = 10001
+        port = _BASE_PORT
 
     while True:
-        if port in _ports_in_use:
+        if port in _allocated_ports or (port + 1) in _allocated_ports:
             port += 1
             continue
         try:
-            server = AltXMLRPCServer(("localhost", port), logRequests=False, allow_none=True)
-        except OSError:
+            server = ZMQPlotServer(port, port + 1, persist=persist, hold=hold)
+        except zmq.ZMQError:
             port += 1
             continue
 
-        server.register_introspection_functions()
-        server.register_function(server.shutdown)
-
-        if hasattr(signal, "SIGHUP"):
-            server.register_signal(signal.SIGHUP)
-        server.register_signal(signal.SIGINT)
-
-        thread = Thread(target=_start_server, args=(server, persist, hold), daemon=True)
-        thread.start()
-        break
-
-    _ports_in_use.add(port)
-    logger.info("Plot server started on port %s", port)
-    return port
+        _allocated_ports.add(port)
+        _allocated_ports.add(port + 1)
+        _servers.append(server)
+        logger.info("Plot server started: data=%s control=%s", port, port + 1)
+        return port
 
 
-class PlotServer(ServerProxy):
+class PlotServer:
     """Convenience client that starts a server and connects to it.
 
+    Plot commands (scatter, lines, histogram) are sent via a PUSH socket
+    — fire-and-forget with no blocking.
+
+    Control commands (clear_fig, flush_queue, close_plot, set_hold) are
+    sent via a REQ socket — synchronous, waits for the server response.
+
     Args:
-        port: Port to listen on (0 = auto-select).
+        port: Data port to listen on (0 = auto-select).
         persist: Whether gnuplot windows should persist.
     """
 
     def __init__(self, port: int = 0, persist: int = 1) -> None:
-        port = rpc_plot(port=port, persist=persist)
-        super().__init__(f"http://localhost:{port}", allow_none=True)
+        data_port = rpc_plot(port=port, persist=persist)
+        control_port = data_port + 1
+
+        self._ctx = zmq.Context.instance()
+        self._push_socket: zmq.Socket[bytes] = self._ctx.socket(zmq.PUSH)
+        self._push_socket.connect(f"tcp://localhost:{data_port}")
+
+        self._req_socket: zmq.Socket[bytes] = self._ctx.socket(zmq.REQ)
+        self._req_socket.connect(f"tcp://localhost:{control_port}")
+        self._req_socket.rcvtimeo = _CONTROL_TIMEOUT_MS
+
+    def scatter(self, *args: Any, **kwargs: Any) -> None:
+        """Send scatter plot command (fire-and-forget).
+
+        See :meth:`liveplots.plotter.RTplot.scatter` for parameter details.
+        """
+        self._send_data("scatter", args, kwargs)
+
+    def lines(self, *args: Any, **kwargs: Any) -> None:
+        """Send line plot command (fire-and-forget).
+
+        See :meth:`liveplots.plotter.RTplot.lines` for parameter details.
+        """
+        self._send_data("lines", args, kwargs)
+
+    def histogram(self, *args: Any, **kwargs: Any) -> None:
+        """Send histogram command (fire-and-forget).
+
+        See :meth:`liveplots.plotter.RTplot.histogram` for parameter details.
+        """
+        self._send_data("histogram", args, kwargs)
+
+    def clear_fig(self) -> int:
+        """Clear the figure (synchronous)."""
+        return self._send_control("clear_fig")
+
+    def flush_queue(self) -> int:
+        """Block until all queued plot commands have been processed."""
+        return self._send_control("flush_queue")
+
+    def close_plot(self) -> int:
+        """Flush the queue and close the plot."""
+        return self._send_control("close_plot")
+
+    def set_hold(self, on: bool) -> int:
+        """Set hold state of the plot."""
+        return self._send_control("set_hold", on)
+
+    def close(self) -> None:
+        """Close client sockets."""
+        self._push_socket.close(linger=0)
+        self._req_socket.close(linger=0)
+
+    def _send_data(self, method: str, args: tuple[Any, ...], kwargs: dict[str, Any]) -> None:
+        """Send a fire-and-forget command via PUSH socket."""
+        self._push_socket.send_pyobj({"method": method, "args": args, "kwargs": kwargs})
+
+    def _send_control(self, method: str, *args: Any) -> int:
+        """Send a synchronous command via REQ socket and return the result."""
+        self._req_socket.send_pyobj({"method": method, "args": args, "kwargs": {}})
+        response: dict[str, Any] = self._req_socket.recv_pyobj()
+        if "error" in response:
+            raise RuntimeError(str(response["error"]))
+        return int(response["result"])
