@@ -22,7 +22,8 @@ _allocated_ports: set[int] = set()
 _servers: list[ZMQPlotServer] = []
 
 _POLL_TIMEOUT_MS = 100
-_CONTROL_TIMEOUT_MS = 10_000
+_DEFAULT_CONTROL_TIMEOUT_MS = 30_000
+_FLUSH_TIMEOUT_MS = 600_000
 _BASE_PORT = 10001
 
 _DATA_METHODS = frozenset(
@@ -202,7 +203,6 @@ class PlotServer:
 
         self._req_socket: zmq.Socket[bytes] = self._ctx.socket(zmq.REQ)
         self._req_socket.connect(f"tcp://localhost:{control_port}")
-        self._req_socket.rcvtimeo = _CONTROL_TIMEOUT_MS
 
     def scatter(self, *args: Any, **kwargs: Any) -> None:
         """Send scatter plot command (fire-and-forget).
@@ -259,7 +259,7 @@ class PlotServer:
 
     def flush_queue(self) -> int:
         """Block until all queued plot commands have been processed."""
-        return self._send_control("flush_queue")
+        return self._send_control("flush_queue", timeout=_FLUSH_TIMEOUT_MS)
 
     def close_plot(self) -> int:
         """Flush the queue and close the plot."""
@@ -278,9 +278,16 @@ class PlotServer:
         """Send a fire-and-forget command via PUSH socket."""
         self._push_socket.send_pyobj({"method": method, "args": args, "kwargs": kwargs})
 
-    def _send_control(self, method: str, *args: Any) -> int:
+    def _send_control(
+        self, method: str, *args: Any, timeout: int = _DEFAULT_CONTROL_TIMEOUT_MS
+    ) -> int:
         """Send a synchronous command via REQ socket and return the result."""
         self._req_socket.send_pyobj({"method": method, "args": args, "kwargs": {}})
+        poller = zmq.Poller()
+        poller.register(self._req_socket, zmq.POLLIN)
+        events = dict(poller.poll(timeout=timeout))
+        if self._req_socket not in events:
+            raise TimeoutError(f"Control command '{method}' timed out after {timeout} ms")
         response: dict[str, Any] = self._req_socket.recv_pyobj()
         if "error" in response:
             raise RuntimeError(str(response["error"]))
