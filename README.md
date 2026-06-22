@@ -56,6 +56,20 @@ pserver.flush_queue()
 
 More examples in the [`examples/`](examples/) directory.
 
+## Plot Gallery
+
+| Lines | Scatter | Histogram |
+|:---:|:---:|:---:|
+| ![Lines](docs/images/lines.png) | ![Scatter](docs/images/scatter.png) | ![Histogram](docs/images/histogram.png) |
+
+| Error Bars | Filled Curves | Boxplot |
+|:---:|:---:|:---:|
+| ![Error Bars](docs/images/error_bars.png) | ![Filled Curves](docs/images/filled_curves.png) | ![Boxplot](docs/images/boxplot.png) |
+
+| Heatmap | Multiplot |
+|:---:|:---:|
+| ![Heatmap](docs/images/heatmap.png) | ![Multiplot](docs/images/multiplot.png) |
+
 ## File System Monitor
 
 The package also includes a cross-platform file system monitor based on
